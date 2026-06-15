@@ -42,9 +42,12 @@ python3 "$F" --start "$WK_PREV_START" --end "$WK_PREV_END"  --out "$WORK/wprev.t
 python3 "$F" --start "$MO_START"      --end "$TARGET_DATE"  --out "$WORK/monthly.tsv"
 python3 "$F" --start "$MO_PREV_START" --end "$MO_PREV_END"  --out "$WORK/mprev.tsv"  || echo "[run_site] 月前期 取得失敗"
 
-# 推移トレンド累積
+# 推移トレンド累積（日次 MM-DD / 週次 / 月次）
+TREND_D="$DATA_DIR/trend_daily.csv"
 TREND_W="$DATA_DIR/trend_weekly.csv"
 TREND_M="$DATA_DIR/trend_monthly.csv"
+D_LABEL=$(python3 -c "from datetime import datetime;print(datetime.strptime('$TARGET_DATE','%Y-%m-%d').strftime('%m-%d'))")
+python3 "$HERE/update_trend.py" "$WORK/daily.tsv"   "$D_LABEL"  "$TREND_D"
 python3 "$HERE/update_trend.py" "$WORK/weekly.tsv"  "$WK_LABEL" "$TREND_W"
 python3 "$HERE/update_trend.py" "$WORK/monthly.tsv" "$MO_LABEL" "$TREND_M"
 
@@ -52,7 +55,7 @@ python3 "$HERE/update_trend.py" "$WORK/monthly.tsv" "$MO_LABEL" "$TREND_M"
 WP=(); [ -s "$WORK/wprev.tsv" ] && WP=(--weekly-prev "$WORK/wprev.tsv")
 MP=(); [ -s "$WORK/mprev.tsv" ] && MP=(--monthly-prev "$WORK/mprev.tsv")
 python3 "$HERE/generate_site.py" --date "$TARGET_DATE" --out-dir "$DATA_DIR" \
-  --daily   "$WORK/daily.tsv"   --daily-label   "${TARGET_DATE}（当日）" \
+  --daily   "$WORK/daily.tsv"   --daily-trend "$TREND_D" --daily-label "${TARGET_DATE}（当日）" \
   --weekly  "$WORK/weekly.tsv"  ${WP[@]+"${WP[@]}"} --weekly-trend "$TREND_W" --weekly-label "${WK_START}〜${TARGET_DATE}（当週）" \
   --monthly "$WORK/monthly.tsv" ${MP[@]+"${MP[@]}"} --monthly-trend "$TREND_M" --monthly-label "${MO_LABEL}（当月）"
 

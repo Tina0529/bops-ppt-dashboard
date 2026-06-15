@@ -73,16 +73,22 @@ def main():
 
     print(f'[backfill] {len(recs)} 件 ({start:%Y-%m-%d} ~ {args.end})', file=sys.stderr)
 
+    dy = defaultdict(list)
     wk = defaultdict(list)
     mo = defaultdict(list)
     for r in recs:
         dt = datetime.strptime(r['createdAt'][:10], '%Y-%m-%d')
         mon = dt - timedelta(days=dt.weekday())          # 自然週（月曜）
+        dy[dt.strftime('%m-%d')].append(r)               # 日次 MM-DD
         wk[mon.strftime('%m-%d週')].append(r)
         mo[r['createdAt'][:7]].append(r)                  # 自然月 YYYY-MM
 
+    # 日次は直近 21 日（データのある日）に絞る — 折線が長くなりすぎないよう
+    daily_rows = sorted([to_row(k, v) for k, v in dy.items()], key=lambda x: x['label'])[-21:]
+    write_csv(args.reports + '/trend_daily.csv', daily_rows)
     write_csv(args.reports + '/trend_weekly.csv', [to_row(k, v) for k, v in wk.items()])
     write_csv(args.reports + '/trend_monthly.csv', [to_row(k, v) for k, v in mo.items()])
+    print(f'[backfill] daily {[r["label"] for r in daily_rows]}', file=sys.stderr)
     print(f'[backfill] weekly {sorted(wk)} / monthly {sorted(mo)}', file=sys.stderr)
 
 
