@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>BOPS PPT Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root, html[data-theme="dark"] {
+    --primary:#0C5CAB; --primary-2:#2f81d6; --secondary:#0a4a8a;
+    --success:#10b981; --warning:#f59e0b; --danger:#ef4444;
+    --surface:#09090b; --panel:#101014; --panel-2:#16161c;
+    --border:rgba(255,255,255,.08); --text:#fafafa; --muted:#a1a1aa; --muted-2:#71717a;
+    --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 8px 24px rgba(0,0,0,.45);
+    --glow1:rgba(12,92,171,.18); --glow2:rgba(47,129,214,.10);
+    --grid:rgba(255,255,255,.06); --axis:#a1a1aa; --trendmuted:#3f3f46;
+  }
+  html[data-theme="light"] {
+    --success:#0a9d6e; --warning:#b9770a; --danger:#d23b35;
+    --surface:#eef2f7; --panel:#ffffff; --panel-2:#f3f6fb;
+    --border:rgba(20,40,80,.12); --text:#1c2430; --muted:#5b6675; --muted-2:#8a94a6;
+    --shadow:0 1px 2px rgba(20,40,80,.06), 0 8px 24px rgba(20,40,80,.08);
+    --glow1:rgba(12,92,171,.10); --glow2:rgba(47,129,214,.06);
+    --grid:rgba(20,40,80,.08); --axis:#5b6675; --trendmuted:#c3cddd;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:
+           radial-gradient(1200px 600px at 80% -10%, var(--glow1), transparent 60%),
+           radial-gradient(900px 500px at -10% 10%, var(--glow2), transparent 55%), var(--surface);
+         color:var(--text); font-family:"IBM Plex Sans JP","IBM Plex Sans",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1180px; margin:0 auto; padding:28px 24px 40px; }
+  .head { display:flex; align-items:center; gap:14px; margin-bottom:20px; }
+  .logo { width:38px; height:38px; border-radius:10px; flex:0 0 auto;
+          background:linear-gradient(135deg,var(--primary),var(--primary-2)); display:grid; place-items:center; font-weight:700; color:#fff; font-size:18px; }
+  .head h1 { margin:0; font-size:20px; font-weight:600; }
+  .head .sub { font-size:12px; color:var(--muted); margin-top:2px; }
+  .head .right { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .btn { font-size:13px; color:var(--text); border:1px solid var(--border); background:var(--panel);
+         padding:7px 14px; border-radius:9px; text-decoration:none; cursor:pointer; font-family:inherit; }
+  .btn:hover { border-color:var(--primary-2); }
+  .toolbar { display:flex; align-items:center; gap:14px; flex-wrap:wrap; background:var(--panel);
+             border:1px solid var(--border); border-radius:14px; padding:14px 16px; box-shadow:var(--shadow); margin-bottom:18px; }
+  .toolbar .lbl { font-size:12px; color:var(--muted); font-weight:500; text-transform:uppercase; letter-spacing:.08em; }
+  .seg { display:inline-flex; background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:4px; gap:4px; }
+  .seg-btn { border:0; background:transparent; color:var(--muted); font-weight:600; font-size:13px; font-family:inherit; padding:7px 18px; border-radius:7px; cursor:pointer; }
+  .seg-btn.active { background:linear-gradient(180deg,var(--primary),var(--secondary)); color:#fff; }
+  .period-info { margin-left:auto; font-size:12.5px; color:var(--muted); }
+  .period-info b { color:var(--text); }
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px; }
+  .kpi { position:relative; background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--border);
+         border-radius:14px; padding:16px; box-shadow:var(--shadow); overflow:hidden; }
+  .kpi::before { content:""; position:absolute; left:0; top:0; height:3px; width:100%; background:linear-gradient(90deg,var(--primary),var(--primary-2)); }
+  .kpi-label { color:var(--muted); font-size:12px; }
+  .kpi-value { font-size:30px; font-weight:700; margin:8px 0 6px; line-height:1; }
+  .kpi-unit { font-size:13px; color:var(--muted); margin-left:4px; }
+  .kpi-delta { font-size:12px; }
+  .kpi-delta small { color:var(--muted-2); }
+  .up { color:var(--success); font-weight:600; } .down { color:var(--danger); font-weight:600; } .flat { color:var(--muted); font-weight:600; }
+  .panel { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px; box-shadow:var(--shadow); margin-bottom:18px; }
+  .panel.hidden { display:none; }
+  .panel h2 { font-size:14px; font-weight:600; margin:0 0 4px; display:flex; align-items:center; gap:8px; }
+  .panel h2::before { content:""; width:8px; height:8px; border-radius:2px; background:linear-gradient(135deg,var(--primary),var(--primary-2)); }
+  .legend-tip { font-size:12px; color:var(--muted); margin:0 0 14px; }
+  .trend3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  thead th { background:var(--panel-2); color:var(--muted); text-align:left; padding:9px 12px; border-bottom:1px solid var(--border); font-size:11.5px; text-transform:uppercase; }
+  tbody td { padding:9px 12px; border-bottom:1px solid var(--border); }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .pill { display:inline-flex; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:600; }
+  .pill.up { background:rgba(16,185,129,.14); color:var(--success); } .pill.down { background:rgba(239,68,68,.14); color:var(--danger); } .pill.flat { background:rgba(127,127,127,.14); color:var(--muted); }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .card { background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:14px; }
+  .card.full { margin-top:16px; }
+  .note { color:var(--muted-2); font-size:11.5px; margin-top:14px; }
+  @media(max-width:760px){ .kpis,.grid2,.trend3{grid-template-columns:1fr;} .period-info{margin-left:0;width:100%;} }
+</style></head>
+<body><div class="wrap">
+  <div class="head">
+    <div class="logo">P</div>
+    <div><h1>BOPS PPT Monitor</h1><div class="sub">生成品質モニタリング & 利用意欲インサイト</div></div>
+    <div class="right">
+      <a class="btn" href="./detail.html">明細を見る →</a>
+      <button class="btn" id="themeBtn" title="テーマ切替">🌙</button>
+    </div>
+  </div>
+  <div class="toolbar">
+    <span class="lbl">統計期間</span>
+    <div class="seg" id="seg">
+      <button class="seg-btn active" data-key="daily">当日</button>
+      <button class="seg-btn" data-key="weekly">当週</button>
+      <button class="seg-btn" data-key="monthly">当月</button>
+    </div>
+    <span class="period-info" id="periodInfo"></span>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div class="panel hidden" id="trendPanel">
+    <h2>推移トレンド（期間ごとの増減）</h2>
+    <div class="legend-tip">直近の各期間の指標推移。線の上り下りで増減が一目で分かります。</div>
+    <div class="trend3">
+      <div class="card"><canvas id="t_total" height="150"></canvas></div>
+      <div class="card"><canvas id="t_comp" height="150"></canvas></div>
+      <div class="card"><canvas id="t_slide" height="150"></canvas></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>使用意欲シグナル（会社別 前期比）</h2>
+    <div class="legend-tip">当期件数が前期比で増 → 利用拡大。前期3件以上から減 → 要フォロー。</div>
+    <table><thead><tr><th>会社</th><th style="text-align:right">当期</th><th style="text-align:right">前期</th><th style="text-align:right">増減</th><th>シグナル</th></tr></thead><tbody id="sigBody"></tbody></table>
+  </div>
+  <div class="panel">
+    <h2>チャート分析</h2>
+    <div class="grid2">
+      <div class="card"><canvas id="c_daily" height="150"></canvas></div>
+      <div class="card"><canvas id="c_bin" height="150"></canvas></div>
+    </div>
+    <div class="card full"><canvas id="c_comp" height="170"></canvas></div>
+    <div class="note" id="footNote"></div>
+  </div>
+</div>
+<script>
+const CK = {primary:'#0C5CAB', primary2:'#2f81d6', sky:'#38bdf8', success:'#10b981', warning:'#f59e0b'};
+Chart.defaults.font.family = "'IBM Plex Sans JP','IBM Plex Sans',sans-serif";
+let DATA = {}, charts = {}, currentKey = 'daily';
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function tc(){ return {axis:css('--axis'), grid:css('--grid'), text:css('--text'), tmuted:css('--trendmuted')}; }
+function destroy(){ Object.values(charts).forEach(c=>c&&c.destroy()); charts={}; }
+function axes(free){ const t=tc(); return {x:{grid:{color:t.grid},ticks:{color:t.axis}},y:{grid:{color:t.grid},ticks:{color:t.axis},beginAtZero:!free}}; }
+function titleOpt(x){ return {display:true,text:x,color:tc().text,font:{size:13,weight:'600'},padding:{bottom:10}}; }
+function lineChart(ctx, labels, data, title, color, free){
+  return new Chart(ctx,{type:'line',data:{labels,datasets:[{label:title,data,borderColor:color,backgroundColor:color+'22',fill:true,tension:.3,pointBackgroundColor:color,pointRadius:3,borderWidth:2}]},
+    options:{plugins:{legend:{display:false},title:titleOpt(title)},scales:axes(free)}});
+}
+function render(key){
+  currentKey = key;
+  const p = DATA[key];
+  if(!p){ document.getElementById('periodInfo').textContent='データなし'; document.getElementById('kpis').innerHTML=''; return; }
+  document.getElementById('periodInfo').innerHTML = '<b>'+p.label+'</b>　|　'+p.pp;
+  document.getElementById('kpis').innerHTML = p.kpis.map(k=>`<div class="kpi"><div class="kpi-label">${k.label}</div><div class="kpi-value">${k.value}<span class="kpi-unit">${k.unit}</span></div><div class="kpi-delta">${k.delta}</div></div>`).join('');
+  document.getElementById('sigBody').innerHTML = p.signals.length ? p.signals.map(s=>`<tr><td>${s.comp}</td><td class="num">${s.cur}</td><td class="num">${s.prev}</td><td class="num ${s.cls}">${s.diff>0?'+':''}${s.diff}</td><td><span class="pill ${s.cls}">${s.lab}</span></td></tr>`).join('') : '<tr><td colspan="5" style="color:var(--muted)">前期データなし</td></tr>';
+  document.getElementById('footNote').textContent = `※ 「純所要時間」= log 間隔 ≥ 1 時間の中断を除外。統計上の未生成 ${p.excluded} 件 / 中断あり ${p.breaks} 件 / 生成成功 ${p.gen_n} 件。`;
+  destroy();
+  const tp = document.getElementById('trendPanel');
+  if(p.trend){ tp.classList.remove('hidden'); const T=p.trend;
+    charts.a=lineChart(t_total,T.labels,T.total,'生成件数の推移',CK.primary,false);
+    charts.b=lineChart(t_comp,T.labels,T.completion,'完成率の推移（%）',CK.success,true);
+    charts.c=lineChart(t_slide,T.labels,T.avgslide,'平均秒/頁の推移',CK.warning,true);
+  } else tp.classList.add('hidden');
+  const C=p.charts, t=tc();
+  charts.daily=new Chart(c_daily,{type:'bar',data:{labels:C.daily.labels,datasets:[{label:'件数',data:C.daily.data,backgroundColor:CK.primary,borderRadius:4,maxBarThickness:40}]},options:{plugins:{legend:{display:false},title:titleOpt('日別 PPT 生成件数')},scales:axes()}});
+  charts.bin=new Chart(c_bin,{type:'bar',data:{labels:C.bins.labels,datasets:[{label:'件数',data:C.bins.data,backgroundColor:CK.sky,borderRadius:4,maxBarThickness:40}]},options:{plugins:{legend:{display:false},title:titleOpt('所要時間分布（生成成功）')},scales:axes()}});
+  charts.comp=new Chart(c_comp,{type:'bar',data:{labels:C.comp.labels,datasets:p.has_prev?[{label:'当期',data:C.comp.cur,backgroundColor:CK.primary,borderRadius:4},{label:'前期',data:C.comp.prev,backgroundColor:t.tmuted,borderRadius:4}]:[{label:'当期',data:C.comp.cur,backgroundColor:CK.primary,borderRadius:4}]},options:{indexAxis:'y',plugins:{legend:{display:p.has_prev,labels:{color:t.axis,boxWidth:12}},title:titleOpt('会社別件数'+(p.has_prev?'（当期 vs 前期）':'（当期）'))},scales:axes()}});
+}
+function applyTheme(t){ document.documentElement.dataset.theme=t; document.getElementById('themeBtn').textContent=t==='dark'?'🌙':'☀️'; try{localStorage.setItem('bops_theme',t);}catch(e){} if(DATA[currentKey]) render(currentKey); }
+document.getElementById('themeBtn').onclick=()=>applyTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+document.querySelectorAll('#seg .seg-btn').forEach(b=>b.onclick=()=>{ document.querySelectorAll('#seg .seg-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); render(b.dataset.key); });
+(function init(){
+  let t='dark'; try{ t=localStorage.getItem('bops_theme')||'dark'; }catch(e){}
+  document.documentElement.dataset.theme=t; document.getElementById('themeBtn').textContent=t==='dark'?'🌙':'☀️';
+  fetch('./data/dashboard.json?_='+Date.now()).then(r=>r.json()).then(d=>{ DATA=d; render('daily'); })
+    .catch(e=>{ document.getElementById('periodInfo').textContent='dashboard.json 未生成（CI 実行後に表示）'; });
+})();
+</script>
+</body></html>

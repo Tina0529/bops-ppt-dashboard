@@ -1,0 +1,113 @@
+name: BOPS PPT Dashboard Daily
+
+# 毎日 JST 20:00 (= UTC 11:00) に当日分を集計し、docs/ を更新して GitHub Pages に反映。
+on:
+  schedule:
+    - cron: '0 11 * * *'   # 11:00 UTC = 20:00 JST
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: '基準日 (YYYY-MM-DD)、留空 = 当日 JST'
+        required: false
+        type: string
+      backfill_days:
+        description: '推移トレンド初期化: 過去N日を一括生成（例 70）。通常は空欄。'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bops-ppt-dashboard
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: Asia/Tokyo
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deps
+        run: pip install --quiet openpyxl playwright && python3 -m playwright install --with-deps chromium
+
+      - name: Resolve target date
+        id: date
+        run: |
+          if [ -n "${{ inputs.target_date }}" ]; then TGT="${{ inputs.target_date }}";
+          else TGT=$(TZ=Asia/Tokyo python3 -c "from datetime import datetime;print(datetime.now().strftime('%Y-%m-%d'))"); fi
+          echo "target=$TGT" >> $GITHUB_OUTPUT
+          echo "Target (JST): $TGT"
+
+      - name: Auto-login & fetch BOPS token
+        id: auth
+        continue-on-error: true
+        env:
+          BOPS_LOGIN_URL: https://bops.gbase.ai/login
+          BOPS_USERNAME: ${{ secrets.BOPS_USERNAME }}
+          BOPS_PASSWORD: ${{ secrets.BOPS_PASSWORD }}
+        run: |
+          if [ -z "$BOPS_USERNAME" ] || [ -z "$BOPS_PASSWORD" ]; then
+            echo "BOPS_USERNAME/PASSWORD 未設定 → BOPS_TOKEN フォールバック"; exit 0; fi
+          python3 scripts/auth.py
+
+      - name: Backfill trend (optional)
+        if: ${{ inputs.backfill_days != '' }}
+        env:
+          BOPS_TOKEN: ${{ steps.auth.outputs.token || secrets.BOPS_TOKEN }}
+          BOPS_TOKEN_TYPE: ${{ secrets.BOPS_TOKEN_TYPE }}
+        run: |
+          python3 scripts/backfill_trend.py --end "${{ steps.date.outputs.target }}" \
+            --days "${{ inputs.backfill_days }}" --reports docs/data
+
+      - name: Build site
+        id: run
+        continue-on-error: true
+        env:
+          BOPS_TOKEN: ${{ steps.auth.outputs.token || secrets.BOPS_TOKEN }}
+          BOPS_TOKEN_TYPE: ${{ secrets.BOPS_TOKEN_TYPE }}
+          LARK_WEBHOOK: ${{ secrets.LARK_WEBHOOK_GBASE_PPT_DAILY_MONITOR }}
+          TARGET_DATE: ${{ steps.date.outputs.target }}
+          DASHBOARD_URL: https://tina0529.github.io/bops-ppt-dashboard/
+        run: |
+          if [ -z "$BOPS_TOKEN" ]; then echo "::error::BOPS token 取得失敗（secrets 要確認）"; exit 1; fi
+          bash scripts/run_site.sh 2>&1 | tee build.log
+
+      - name: Commit docs (Pages source)
+        if: steps.run.outcome == 'success'
+        run: |
+          git config user.name "Tina0529"
+          git config user.email "194119517+Tina0529@users.noreply.github.com"
+          git pull --rebase || true
+          git add docs/ || true
+          if git diff --cached --quiet; then echo "差分なし"; else
+            git commit -m "data: dashboard update ${{ steps.date.outputs.target }}"
+            for i in 1 2 3; do git pull --rebase; git push origin HEAD && break; sleep 3; done
+          fi
+
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: build-log, path: build.log, if-no-files-found: ignore }
+
+      - name: Notify Lark on failure
+        if: steps.run.outcome == 'failure'
+        env:
+          LARK_WEBHOOK: ${{ secrets.LARK_WEBHOOK_GBASE_PPT_DAILY_MONITOR }}
+        run: |
+          [ -z "$LARK_WEBHOOK" ] && exit 0
+          MSG="⚠️ BOPS PPT Dashboard 失敗 (${{ steps.date.outputs.target }})\\n自動ログイン失敗 or token 失効の可能性。\\nlog: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -sS -X POST "$LARK_WEBHOOK" -H 'Content-Type: application/json' -d "{\"msg_type\":\"text\",\"content\":{\"text\":\"$MSG\"}}" || true
+
+      - name: Fail run if build failed
+        if: steps.run.outcome == 'failure'
+        run: echo "::error::run_site.sh failed" && exit 1

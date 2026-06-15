@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>BOPS PPT 明細 — 当日/当週/当月</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root, html[data-theme="dark"] {
+    --primary:#0C5CAB; --primary-2:#2f81d6; --surface:#09090b; --panel:#101014; --panel-2:#16161c;
+    --border:rgba(255,255,255,.08); --text:#fafafa; --muted:#a1a1aa; --muted-2:#71717a;
+    --excluded:#26262b; --break:#3a2f12; --shadow:0 8px 24px rgba(0,0,0,.45);
+  }
+  html[data-theme="light"] {
+    --surface:#eef2f7; --panel:#fff; --panel-2:#f3f6fb; --border:rgba(20,40,80,.12);
+    --text:#1c2430; --muted:#5b6675; --muted-2:#8a94a6; --excluded:#f0f0f3; --break:#fff7e0;
+    --shadow:0 8px 24px rgba(20,40,80,.08);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--surface); color:var(--text);
+         font-family:"IBM Plex Sans JP","IBM Plex Sans",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1500px; margin:0 auto; padding:24px 20px 48px; }
+  .head { display:flex; align-items:center; gap:14px; margin-bottom:18px; flex-wrap:wrap; }
+  .logo { width:36px; height:36px; border-radius:9px; flex:0 0 auto;
+          background:linear-gradient(135deg,var(--primary),var(--primary-2));
+          display:grid; place-items:center; font-weight:700; color:#fff; }
+  h1 { margin:0; font-size:19px; font-weight:600; }
+  .sub { font-size:12px; color:var(--muted); margin-top:2px; }
+  .right { margin-left:auto; display:flex; gap:10px; align-items:center; }
+  .btn { border:1px solid var(--border); background:var(--panel); color:var(--text);
+         border-radius:8px; padding:7px 14px; font-size:13px; cursor:pointer; text-decoration:none; font-family:inherit; }
+  .btn:hover { border-color:var(--primary-2); }
+  .toolbar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
+  .seg { display:inline-flex; background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:4px; gap:4px; }
+  .seg-btn { border:0; background:transparent; color:var(--muted); font-weight:600; font-size:13px;
+             font-family:inherit; padding:7px 18px; border-radius:7px; cursor:pointer; }
+  .seg-btn.active { background:linear-gradient(180deg,var(--primary),#0a4a8a); color:#fff; }
+  .search { flex:1; min-width:200px; max-width:360px; padding:8px 12px; border-radius:8px;
+            border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:13px; font-family:inherit; }
+  .count { font-size:12px; color:var(--muted); }
+  .tablewrap { overflow:auto; border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; white-space:nowrap; }
+  thead th { position:sticky; top:0; background:var(--panel-2); color:var(--muted); text-align:left;
+             padding:10px 12px; border-bottom:1px solid var(--border); font-weight:600; cursor:pointer; user-select:none; }
+  thead th:hover { color:var(--text); }
+  thead th.sorted::after { content:attr(data-dir); margin-left:4px; color:var(--primary-2); }
+  tbody td { padding:8px 12px; border-bottom:1px solid var(--border); }
+  tbody tr:hover { background:rgba(127,127,127,.06); }
+  tr.excluded td { background:var(--excluded); color:var(--muted); }
+  tr.brk td.brkcell { background:var(--break); }
+  .topic { max-width:340px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .badge { display:inline-block; padding:1px 8px; border-radius:999px; font-size:11px; font-weight:600;
+           background:rgba(127,127,127,.16); color:var(--muted); }
+  .footer { margin-top:16px; font-size:11.5px; color:var(--muted-2); line-height:1.7; }
+  @media(max-width:640px){ .topic{max-width:160px;} }
+</style></head>
+<body><div class="wrap">
+  <div class="head">
+    <div class="logo">P</div>
+    <div><h1>BOPS PPT 生成明細</h1><div class="sub" id="sub">読み込み中…</div></div>
+    <div class="right">
+      <a class="btn" href="./index.html">← ダッシュボード</a>
+      <button class="btn" id="themeBtn" title="テーマ切替">🌙</button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="seg" id="seg">
+      <button class="seg-btn active" data-k="daily">当日</button>
+      <button class="seg-btn" data-k="weekly">当週</button>
+      <button class="seg-btn" data-k="monthly">当月</button>
+    </div>
+    <input class="search" id="search" placeholder="トピック / ユーザー / 会社 で絞り込み…">
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr id="thead"></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="footer" id="foot"></div>
+</div>
+<script>
+// 列定義（Excel 明細に準拠）。key は detail.json の各レコードのフィールド。
+const COLS = [
+  {k:'id', label:'ID', num:true},
+  {k:'topic', label:'トピック', cls:'topic'},
+  {k:'username', label:'ユーザー'},
+  {k:'company', label:'会社'},
+  {k:'strategy', label:'戦略'},
+  {k:'status', label:'状態', badge:true},
+  {k:'slideCount', label:'スライド数(一覧)', num:true},
+  {k:'actualSlides', label:'実際', num:true},
+  {k:'statSlides', label:'統計用', num:true},
+  {k:'createdAt', label:'作成日時'},
+  {k:'startTime', label:'開始'},
+  {k:'endTime', label:'終了'},
+  {k:'durationSec', label:'所要(秒)', num:true, brk:true},
+  {k:'mmss', label:'mm:ss', brk:true},
+  {k:'logsCount', label:'ログ件数', num:true},
+  {k:'avgPerSlide', label:'平均秒/頁', num:true, brk:true},
+  {k:'reason', label:'未做成原因'},
+  {k:'breakCount', label:'中断回数', num:true},
+  {k:'maxGapSec', label:'最大中断(秒)', num:true},
+];
+
+let DATA = {daily:[], weekly:[], monthly:[]}, META = {};
+let cur = 'daily', sortKey = 'id', sortDir = -1, query = '';
+
+function applyTheme(t){
+  document.documentElement.dataset.theme = t;
+  document.getElementById('themeBtn').textContent = t==='dark'?'🌙':'☀️';
+  try{ localStorage.setItem('bops_theme', t); }catch(e){}
+}
+document.getElementById('themeBtn').onclick = ()=>applyTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+
+function rows(){
+  let r = (DATA[cur]||[]).slice();
+  if(query){
+    const q = query.toLowerCase();
+    r = r.filter(x => [x.topic,x.username,x.company,x.strategy].some(v => (v||'').toLowerCase().includes(q)));
+  }
+  r.sort((a,b)=>{
+    let va=a[sortKey], vb=b[sortKey];
+    if(typeof va==='number'||typeof vb==='number'){ va=+va||0; vb=+vb||0; return (va-vb)*sortDir; }
+    return String(va||'').localeCompare(String(vb||''))*sortDir;
+  });
+  return r;
+}
+
+function renderHead(){
+  document.getElementById('thead').innerHTML = COLS.map(c=>{
+    const sorted = c.k===sortKey;
+    return `<th data-k="${c.k}" class="${sorted?'sorted':''}" data-dir="${sorted?(sortDir>0?'▲':'▼'):''}">${c.label}</th>`;
+  }).join('');
+  document.querySelectorAll('#thead th').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k;
+    if(k===sortKey) sortDir*=-1; else { sortKey=k; sortDir = COLS.find(c=>c.k===k).num?-1:1; }
+    render();
+  });
+}
+
+function render(){
+  renderHead();
+  const r = rows();
+  document.getElementById('tbody').innerHTML = r.map(x=>{
+    const ex = x.excluded ? 'excluded':'';
+    const bk = (x.breakCount>0) ? 'brk':'';
+    return `<tr class="${ex} ${bk}">` + COLS.map(c=>{
+      let v = x[c.k]; if(v===undefined||v===null) v='';
+      const cls = (c.num?'num ':'') + (c.cls||'') + (c.brk&&bk?' brkcell':'');
+      if(c.badge) v = `<span class="badge">${v||'—'}</span>`;
+      else if(c.cls==='topic') return `<td class="${cls}" title="${String(v).replace(/"/g,'&quot;')}">${v}</td>`;
+      return `<td class="${cls}">${v}</td>`;
+    }).join('') + `</tr>`;
+  }).join('') || `<tr><td colspan="${COLS.length}" style="padding:20px;color:var(--muted)">該当データなし</td></tr>`;
+  const total=(DATA[cur]||[]).length, shown=r.length, exn=(DATA[cur]||[]).filter(x=>x.excluded).length;
+  document.getElementById('count').textContent = `${shown}/${total} 件表示${query?'（絞込中）':''} · 未生成 ${exn} 件`;
+}
+
+document.querySelectorAll('#seg .seg-btn').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#seg .seg-btn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); cur=b.dataset.k; query=''; document.getElementById('search').value=''; render();
+});
+document.getElementById('search').oninput = e=>{ query=e.target.value.trim(); render(); };
+
+(function init(){
+  let t='dark'; try{ t=localStorage.getItem('bops_theme')||'dark'; }catch(e){}
+  applyTheme(t);
+  fetch('./data/detail.json?_='+Date.now()).then(r=>r.json()).then(d=>{
+    DATA = {daily:d.daily||[], weekly:d.weekly||[], monthly:d.monthly||[]};
+    META = d;
+    document.getElementById('sub').textContent =
+      `基準日 ${d.date||'?'} ｜ 当日 ${DATA.daily.length} 件 / 当週 ${DATA.weekly.length} 件 / 当月 ${DATA.monthly.length} 件`;
+    document.getElementById('foot').innerHTML =
+      `※ 灰色行＝統計上の未生成（status 空/created かつ logsCount≤1）。黄色セル＝中断（log 間隔 ≥ 1 時間）あり。`+
+      `列は Excel 明細に準拠。列ヘッダクリックでソート。`;
+    render();
+  }).catch(e=>{
+    document.getElementById('sub').textContent = 'detail.json の読み込みに失敗しました';
+    document.getElementById('tbody').innerHTML = `<tr><td colspan="${COLS.length}" style="padding:20px;color:var(--muted)">データ未生成（CI 実行後に表示されます）</td></tr>`;
+    renderHead();
+  });
+})();
+</script>
+</body></html>
