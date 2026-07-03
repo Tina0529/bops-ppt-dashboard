@@ -171,20 +171,40 @@ document.getElementById('search').oninput = e=>{ query=e.target.value.trim(); re
 (function init(){
   let t='dark'; try{ t=localStorage.getItem('bops_theme')||'dark'; }catch(e){}
   applyTheme(t);
-  fetch('./data/detail.json?_='+Date.now()).then(r=>r.json()).then(d=>{
-    DATA = {daily:d.daily||[], weekly:d.weekly||[], monthly:d.monthly||[]};
-    META = d;
-    document.getElementById('sub').textContent =
-      `基準日 ${d.date||'?'} ｜ 当日 ${DATA.daily.length} 件 / 当週 ${DATA.weekly.length} 件 / 当月 ${DATA.monthly.length} 件`;
-    document.getElementById('foot').innerHTML =
-      `※ 灰色行＝統計上の未生成（status 空/created かつ logsCount≤1）。黄色セル＝中断（log 間隔 ≥ 1 時間）あり。`+
+  const FOOT = `※ 灰色行＝統計上の未生成（status 空/created かつ logsCount≤1）。黄色セル＝中断（log 間隔 ≥ 1 時間）あり。`+
       `列は Excel 明細に準拠。列ヘッダクリックでソート。`;
-    render();
-  }).catch(e=>{
-    document.getElementById('sub').textContent = 'detail.json の読み込みに失敗しました';
+  const qMonth = new URLSearchParams(location.search).get('month');
+  const fail = ()=>{
+    document.getElementById('sub').textContent = 'データの読み込みに失敗しました';
     document.getElementById('tbody').innerHTML = `<tr><td colspan="${COLS.length}" style="padding:20px;color:var(--muted)">データ未生成（CI 実行後に表示されます）</td></tr>`;
     renderHead();
-  });
+  };
+  fetch('./data/detail.json?_='+Date.now()).then(r=>r.json()).then(d=>{
+    META = d;
+    if(qMonth && qMonth !== (d.date||'').slice(0,7)){
+      // 過去月アーカイブ表示: 月次明細のみ（当日/当週タブは非表示）
+      return fetch('./data/archive/'+qMonth+'.json?_='+Date.now()).then(r=>r.json()).then(a=>{
+        DATA = {daily:[], weekly:[], monthly:a.detail||[]};
+        cur = 'monthly';
+        document.querySelectorAll('#seg .seg-btn').forEach(b=>{
+          b.classList.toggle('active', b.dataset.k==='monthly');
+          if(b.dataset.k!=='monthly') b.style.display='none';
+        });
+        const back = document.createElement('a');
+        back.className='btn'; back.href='./detail.html'; back.textContent='最新の明細へ';
+        document.querySelector('.right').prepend(back);
+        document.getElementById('sub').textContent =
+          `${qMonth} 月間明細（${a.date} 集計）｜ ${DATA.monthly.length} 件`;
+        document.getElementById('foot').innerHTML = FOOT;
+        render();
+      });
+    }
+    DATA = {daily:d.daily||[], weekly:d.weekly||[], monthly:d.monthly||[]};
+    document.getElementById('sub').textContent =
+      `基準日 ${d.date||'?'} ｜ 当日 ${DATA.daily.length} 件 / 当週 ${DATA.weekly.length} 件 / 当月 ${DATA.monthly.length} 件`;
+    document.getElementById('foot').innerHTML = FOOT;
+    render();
+  }).catch(fail);
 })();
 </script>
 </body></html>

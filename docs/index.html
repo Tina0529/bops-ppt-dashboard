@@ -45,6 +45,13 @@
   .seg { display:inline-flex; background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:4px; gap:4px; }
   .seg-btn { border:0; background:transparent; color:var(--muted); font-weight:600; font-size:13px; font-family:inherit; padding:7px 18px; border-radius:7px; cursor:pointer; }
   .seg-btn.active { background:linear-gradient(180deg,var(--primary),var(--secondary)); color:#fff; }
+  .mnav { display:inline-flex; align-items:center; gap:6px; }
+  .mnav.hidden { display:none; }
+  .mnav button { border:1px solid var(--border); background:var(--panel-2); color:var(--text);
+                 width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:11px; line-height:1; font-family:inherit; }
+  .mnav button:hover:not(:disabled) { border-color:var(--primary-2); }
+  .mnav button:disabled { opacity:.3; cursor:default; }
+  .mnav .mcur { font-size:13px; font-weight:600; min-width:70px; text-align:center; font-variant-numeric:tabular-nums; }
   .period-info { margin-left:auto; font-size:12.5px; color:var(--muted); }
   .period-info b { color:var(--text); }
   .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px; }
@@ -80,7 +87,7 @@
     <div class="logo">P</div>
     <div><h1>BOPS PPT Monitor</h1><div class="sub">生成品質モニタリング & 利用意欲インサイト</div></div>
     <div class="right">
-      <a class="btn" href="./detail.html">明細を見る →</a>
+      <a class="btn" href="./detail.html" id="detailLink">明細を見る →</a>
       <button class="btn" id="themeBtn" title="テーマ切替">🌙</button>
     </div>
   </div>
@@ -90,6 +97,11 @@
       <button class="seg-btn active" data-key="daily">当日</button>
       <button class="seg-btn" data-key="weekly">当週</button>
       <button class="seg-btn" data-key="monthly">当月</button>
+    </div>
+    <div class="mnav hidden" id="mnav">
+      <button id="mPrev" title="前の月">◀</button>
+      <span class="mcur" id="mCur"></span>
+      <button id="mNext" title="次の月">▶</button>
     </div>
     <span class="period-info" id="periodInfo"></span>
   </div>
@@ -122,6 +134,30 @@
 const CK = {primary:'#0C5CAB', primary2:'#2f81d6', sky:'#38bdf8', success:'#10b981', warning:'#f59e0b'};
 Chart.defaults.font.family = "'IBM Plex Sans JP','IBM Plex Sans',sans-serif";
 let DATA = {}, charts = {}, currentKey = 'daily';
+let MONTHS = [], mSel = '', ARCH = {};  // 月次アーカイブ（過去月切替用）
+function curMonth(){ return (DATA.date||'').slice(0,7); }
+function monthNav(){
+  const nav = document.getElementById('mnav');
+  if(currentKey!=='monthly' || MONTHS.length<2){ nav.classList.add('hidden'); }
+  else{
+    nav.classList.remove('hidden');
+    const i = MONTHS.indexOf(mSel);
+    document.getElementById('mCur').textContent = mSel;
+    document.getElementById('mPrev').disabled = i<=0;
+    document.getElementById('mNext').disabled = i<0 || i>=MONTHS.length-1;
+  }
+  document.getElementById('detailLink').href =
+    (currentKey==='monthly' && mSel && mSel!==curMonth()) ? './detail.html?month='+mSel : './detail.html';
+}
+function monthData(m){
+  if(!m || m===curMonth()) return Promise.resolve(DATA.monthly);
+  if(ARCH[m]) return Promise.resolve(ARCH[m]);
+  return fetch('./data/archive/'+m+'.json?_='+Date.now()).then(r=>r.json()).then(a=>{
+    const p = a.dashboard;
+    p.label = a.month+'（'+a.date+' 集計）';
+    ARCH[m] = p; return p;
+  });
+}
 function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
 function tc(){ return {axis:css('--axis'), grid:css('--grid'), text:css('--text'), tmuted:css('--trendmuted')}; }
 function destroy(){ Object.values(charts).forEach(c=>c&&c.destroy()); charts={}; }
@@ -133,7 +169,14 @@ function lineChart(ctx, labels, data, title, color, free){
 }
 function render(key){
   currentKey = key;
-  const p = DATA[key];
+  monthNav();
+  if(key==='monthly'){
+    if(!mSel) mSel = curMonth();
+    monthNav();
+    monthData(mSel).then(p=>draw(p)).catch(()=>draw(null));
+  } else draw(DATA[key]);
+}
+function draw(p){
   if(!p){ document.getElementById('periodInfo').textContent='データなし'; document.getElementById('kpis').innerHTML=''; return; }
   document.getElementById('periodInfo').innerHTML = '<b>'+p.label+'</b>　|　'+p.pp;
   document.getElementById('kpis').innerHTML = p.kpis.map(k=>`<div class="kpi"><div class="kpi-label">${k.label}</div><div class="kpi-value">${k.value}<span class="kpi-unit">${k.unit}</span></div><div class="kpi-delta">${k.delta}</div></div>`).join('');
@@ -154,11 +197,18 @@ function render(key){
 function applyTheme(t){ document.documentElement.dataset.theme=t; document.getElementById('themeBtn').textContent=t==='dark'?'🌙':'☀️'; try{localStorage.setItem('bops_theme',t);}catch(e){} if(DATA[currentKey]) render(currentKey); }
 document.getElementById('themeBtn').onclick=()=>applyTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
 document.querySelectorAll('#seg .seg-btn').forEach(b=>b.onclick=()=>{ document.querySelectorAll('#seg .seg-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); render(b.dataset.key); });
+document.getElementById('mPrev').onclick=()=>{ const i=MONTHS.indexOf(mSel); if(i>0){ mSel=MONTHS[i-1]; render('monthly'); } };
+document.getElementById('mNext').onclick=()=>{ const i=MONTHS.indexOf(mSel); if(i>-1&&i<MONTHS.length-1){ mSel=MONTHS[i+1]; render('monthly'); } };
 (function init(){
   let t='dark'; try{ t=localStorage.getItem('bops_theme')||'dark'; }catch(e){}
   document.documentElement.dataset.theme=t; document.getElementById('themeBtn').textContent=t==='dark'?'🌙':'☀️';
-  fetch('./data/dashboard.json?_='+Date.now()).then(r=>r.json()).then(d=>{ DATA=d; render('daily'); })
+  fetch('./data/dashboard.json?_='+Date.now()).then(r=>r.json()).then(d=>{ DATA=d; mSel=curMonth(); render('daily'); })
     .catch(e=>{ document.getElementById('periodInfo').textContent='dashboard.json 未生成（CI 実行後に表示）'; });
+  fetch('./data/archive/index.json?_='+Date.now()).then(r=>r.ok?r.json():{months:[]}).then(x=>{
+    MONTHS = x.months||[];
+    if(DATA.date && MONTHS.indexOf(curMonth())<0) MONTHS.push(curMonth());
+    monthNav();
+  }).catch(()=>{});
 })();
 </script>
 </body></html>

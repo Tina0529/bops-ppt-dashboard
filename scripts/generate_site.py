@@ -80,6 +80,23 @@ def main():
         json.dump(dashboard, f, ensure_ascii=False, separators=(',', ':'))
     with open(os.path.join(args.out_dir, 'detail.json'), 'w', encoding='utf-8') as f:
         json.dump(detail, f, ensure_ascii=False, separators=(',', ':'))
+
+    # 月次アーカイブ: 当月分を毎回上書き（月が変わると前月分は自動的に凍結される）。
+    # index.html / detail.html の過去月切替はこの archive/*.json を参照する。
+    if dashboard.get('monthly'):
+        arch_dir = os.path.join(args.out_dir, 'archive')
+        os.makedirs(arch_dir, exist_ok=True)
+        month = args.date[:7]
+        with open(os.path.join(arch_dir, f'{month}.json'), 'w', encoding='utf-8') as f:
+            json.dump({'month': month, 'date': args.date,
+                       'dashboard': dashboard['monthly'], 'detail': detail['monthly']},
+                      f, ensure_ascii=False, separators=(',', ':'))
+        idx = sorted(fn[:-5] for fn in os.listdir(arch_dir)
+                     if fn.endswith('.json') and fn != 'index.json')
+        with open(os.path.join(arch_dir, 'index.json'), 'w', encoding='utf-8') as f:
+            json.dump({'months': idx}, f)
+        print(f'[generate_site] archive/{month}.json 更新（アーカイブ月: {idx}）')
+
     print(f'[generate_site] dashboard.json + detail.json → {args.out_dir} '
           f'(daily {len(detail["daily"])} / weekly {len(detail["weekly"])} / monthly {len(detail["monthly"])})')
 
