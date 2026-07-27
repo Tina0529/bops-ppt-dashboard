@@ -80,6 +80,7 @@ jobs:
           DASHBOARD_URL: https://tina0529.github.io/bops-ppt-dashboard/
         run: |
           if [ -z "$BOPS_TOKEN" ]; then echo "::error::BOPS token 取得失敗（secrets 要確認）"; exit 1; fi
+          set -o pipefail   # tee がパイプで exit code を握り潰し、失敗が success 扱いになるのを防ぐ
           bash scripts/run_site.sh 2>&1 | tee build.log
 
       - name: Commit docs (Pages source)
