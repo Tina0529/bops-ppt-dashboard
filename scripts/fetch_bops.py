@@ -181,8 +181,12 @@ def main():
         except Exception as e:
             print(f'  [warn] id={p.get("id")} の詳細取得に失敗: {e}', file=sys.stderr)
 
+    # topic 等にユーザー入力の改行/タブが混入すると TSV の行が壊れるため空白に置換
+    def _clean(c):
+        return str(c).replace('\t', ' ').replace('\r', ' ').replace('\n', ' ')
+
     with open(args.out, 'w', encoding='utf-8') as f:
-        f.write('\n'.join('\t'.join(str(c) for c in r) for r in rows))
+        f.write('\n'.join('\t'.join(_clean(c) for c in r) for r in rows))
     print(f'[fetch_bops] 書き出し: {args.out}（{len(rows) - 1} 件）')
     # 期間メタを stdout 最終行に（呼び出し側が拾えるよう）
     print(f'RANGE\t{start_date}\t{end_date}')
