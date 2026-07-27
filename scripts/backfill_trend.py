@@ -14,7 +14,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from fetch_bops import _post, compute_durations, LIST_API, DETAIL_API, _ts  # noqa: E402
+from fetch_bops import _post, compute_durations, fetch_ppt_list, DETAIL_API, _ts  # noqa: E402
 from generate_xlsx import aggregate  # noqa: E402
 
 
@@ -51,13 +51,10 @@ def main():
     start_ts = _ts(start.strftime('%Y-%m-%d') + ' 00:00:00')
     end_ts = _ts(args.end + ' 23:59:59')
 
-    data = _post(LIST_API, {'pageNum': 1, 'pageSize': args.page_size}, headers)
-    plist = data.get('pptList', [])
+    plist = fetch_ppt_list(headers, start_ts, end_ts)
 
     recs = []
     for p in plist:
-        if not (start_ts <= _ts(p['createdAt']) <= end_ts):
-            continue
         try:
             d = _post(DETAIL_API, {'bizId': p['bizId']}, headers)
             ppt = d.get('ppt') or {}

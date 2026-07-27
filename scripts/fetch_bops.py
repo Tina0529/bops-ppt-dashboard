@@ -64,6 +64,39 @@ def _ts(s):
     return datetime.strptime(s.replace(' ', 'T')[:19], '%Y-%m-%dT%H:%M:%S').timestamp()
 
 
+# BOPS pageQuery はページングパラメータが currentPage（pageNum ではない）で、
+# pageSize は約 80 でサーバ側 cap される。1 ページだけ取ると月次が 80 件で
+# 頭打ちになるため、期間の下限を過ぎるまで全ページを舐める。
+PAGE_SIZE_CAP = 80
+MAX_PAGES = 200  # 暴走保険（80×200=16,000 件）
+
+
+def fetch_ppt_list(headers, start_ts, end_ts):
+    """期間 [start_ts, end_ts] にかかる PPT を全ページ走査で取得する。
+
+    リストは createdAt 降順なので、ページ内の最古が start_ts を下回ったら打ち切り。
+    ページ跨ぎで新規レコードが挿入されるとズレて重複しうるため bizId で去重。
+    """
+    seen, out = set(), []
+    for page in range(1, MAX_PAGES + 1):
+        data = _post(LIST_API, {'currentPage': page, 'pageSize': PAGE_SIZE_CAP}, headers)
+        plist = data.get('pptList', [])
+        if not plist:
+            break
+        for p in plist:
+            biz = p.get('bizId')
+            if biz in seen:
+                continue
+            seen.add(biz)
+            if start_ts <= _ts(p['createdAt']) <= end_ts:
+                out.append(p)
+        oldest = min(_ts(p['createdAt']) for p in plist)
+        pages = (data.get('paginator') or {}).get('pages')
+        if oldest < start_ts or (pages and page >= pages):
+            break
+    return out
+
+
 def compute_durations(logs):
     """logs から純所要時間（中断除外）等を計算。"""
     if not logs:
@@ -109,7 +142,8 @@ def main():
     ap.add_argument('--start', help='期間開始 YYYY-MM-DD')
     ap.add_argument('--end', help='期間終了 YYYY-MM-DD')
     ap.add_argument('--out', required=True, help='出力 TSV パス')
-    ap.add_argument('--page-size', type=int, default=300)
+    ap.add_argument('--page-size', type=int, default=300,
+                    help='(deprecated) 全ページ走査に移行したため未使用')
     args = ap.parse_args()
 
     token = os.environ.get('BOPS_TOKEN')
@@ -123,9 +157,7 @@ def main():
     start_ts = _ts(start_date + ' 00:00:00')
     end_ts = _ts(end_date + ' 23:59:59')
 
-    list_data = _post(LIST_API, {'pageNum': 1, 'pageSize': args.page_size}, headers)
-    ppt_list = list_data.get('pptList', [])
-    filtered = [p for p in ppt_list if start_ts <= _ts(p['createdAt']) <= end_ts]
+    filtered = fetch_ppt_list(headers, start_ts, end_ts)
     print(f'[fetch_bops] {len(filtered)} 件 ({start_date} ~ {end_date}, mode={args.mode})')
 
     rows = [HEADER]
