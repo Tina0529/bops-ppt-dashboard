@@ -1,5 +1,4 @@
 label,total,generated,completion,avg_per_slide
-07-03,24,23,0.9583,99.8
 07-06,4,3,0.75,136.8
 07-07,2,2,1.0,76.3
 07-08,2,2,1.0,167.0
@@ -25,3 +24,4 @@ label,total,generated,completion,avg_per_slide
 07-31,2,2,1.0,187.6
 08-01,0,0,0,0
 08-02,0,0,0,0
+08-03,0,0,0,0
