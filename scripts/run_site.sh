@@ -51,6 +51,38 @@ python3 "$HERE/update_trend.py" "$WORK/daily.tsv"   "$D_LABEL"  "$TREND_D"
 python3 "$HERE/update_trend.py" "$WORK/weekly.tsv"  "$WK_LABEL" "$TREND_W"
 python3 "$HERE/update_trend.py" "$WORK/monthly.tsv" "$MO_LABEL" "$TREND_M"
 
+# --- 締め漏れ回補 ---
+# CI は JST 20時台に走るため、実行後〜24時の生成分がその日のトレンド点から漏れる。
+# 翌日以降の run で確定値を上書きして回補する:
+#   毎日: 前日の日次 / 月曜・火曜: 前週の週次 / 1〜2日: 前月の月次
+read -r YDAY YD_LABEL PWK_START PWK_END PWK_LABEL PMO_START PMO_END PMO_LABEL DOW DOM < <(python3 - "$TARGET_DATE" <<'PY'
+from datetime import datetime, timedelta
+import sys
+d = datetime.strptime(sys.argv[1], '%Y-%m-%d')
+y = d - timedelta(days=1)
+pwk_start = d - timedelta(days=d.weekday()) - timedelta(days=7)
+pwk_end = pwk_start + timedelta(days=6)
+pmo_last = d.replace(day=1) - timedelta(days=1)
+print(y.strftime('%Y-%m-%d'), y.strftime('%m-%d'),
+      pwk_start.strftime('%Y-%m-%d'), pwk_end.strftime('%Y-%m-%d'), pwk_start.strftime('%m-%d週'),
+      pmo_last.replace(day=1).strftime('%Y-%m-%d'), pmo_last.strftime('%Y-%m-%d'), pmo_last.strftime('%Y-%m'),
+      d.weekday(), d.day)
+PY
+)
+python3 "$F" --mode daily --date "$YDAY" --out "$WORK/yday.tsv" \
+  && python3 "$HERE/update_trend.py" "$WORK/yday.tsv" "$YD_LABEL" "$TREND_D" \
+  || echo "[run_site] 前日回補 スキップ"
+if [ "$DOW" -le 1 ]; then
+  python3 "$F" --start "$PWK_START" --end "$PWK_END" --out "$WORK/pweek.tsv" \
+    && python3 "$HERE/update_trend.py" "$WORK/pweek.tsv" "$PWK_LABEL" "$TREND_W" \
+    || echo "[run_site] 前週回補 スキップ"
+fi
+if [ "$DOM" -le 2 ]; then
+  python3 "$F" --start "$PMO_START" --end "$PMO_END" --out "$WORK/pmonth.tsv" \
+    && python3 "$HERE/update_trend.py" "$WORK/pmonth.tsv" "$PMO_LABEL" "$TREND_M" \
+    || echo "[run_site] 前月回補 スキップ"
+fi
+
 # サイト JSON 生成（前期/トレンドは存在すれば渡す）
 WP=(); [ -s "$WORK/wprev.tsv" ] && WP=(--weekly-prev "$WORK/wprev.tsv")
 MP=(); [ -s "$WORK/mprev.tsv" ] && MP=(--monthly-prev "$WORK/mprev.tsv")

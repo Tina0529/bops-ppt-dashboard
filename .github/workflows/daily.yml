@@ -95,6 +95,28 @@ jobs:
             for i in 1 2 3; do git pull --rebase; git push origin HEAD && break; sleep 3; done
           fi
 
+      - name: Verify Pages deployment
+        if: steps.run.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LARK_WEBHOOK: ${{ secrets.LARK_WEBHOOK_GBASE_PPT_DAILY_MONITOR }}
+        run: |
+          # commit 後の Pages ビルドが errored だとページが旧データのまま残る（2026-08-06 実績）。
+          # 最大 3 分待って最新ビルドの状態を確認し、失敗なら 1 回だけ再ビルドを試みて Lark へ通知。
+          sleep 60
+          for i in 1 2 3; do
+            ST=$(gh api repos/${{ github.repository }}/pages/builds/latest -q .status || echo unknown)
+            echo "pages build status: $ST"
+            [ "$ST" = "built" ] && exit 0
+            [ "$ST" = "errored" ] && break
+            sleep 60
+          done
+          if [ "$ST" = "errored" ]; then
+            git commit --allow-empty -m "chore: retry Pages build" && git push origin HEAD || true
+            [ -n "$LARK_WEBHOOK" ] && curl -sS -X POST "$LARK_WEBHOOK" -H 'Content-Type: application/json' \
+              -d '{"msg_type":"text","content":{"text":"⚠️ BOPS PPT Dashboard: GitHub Pages build errored — ページが旧データのままの可能性。再ビルドを試行済み、要確認: https://github.com/${{ github.repository }}/actions"}}' || true
+          fi
+
       - name: Upload log
         if: always()
         uses: actions/upload-artifact@v4

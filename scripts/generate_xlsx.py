@@ -61,6 +61,9 @@ COLOR_AVG_BG = 'FCE4D6'        # 薄橙（平均行）
 
 def classify(status: str, logs_count: int) -> tuple[int, str]:
     s = (status or '').strip().lower()
+    if s == 'failed':
+        # 途中まで生成できていても status=failed は完成扱いにしない
+        return 0, '生成失敗'
     if logs_count <= 1 and s in ('', 'created'):
         if s == 'created':
             return 0, 'ユーザーが処理を中断'
