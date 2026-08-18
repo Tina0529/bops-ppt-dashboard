@@ -113,6 +113,24 @@ python3 scripts/backfill_org_trend.py
 
 > アーカイブが無い月（例: 2026-05）は組織別内訳を復元できない。月次合計のみ `trend_monthly.csv` に残る。
 
+### さらに過去へ遡る（BOPS から一括再取得）
+
+アーカイブが存在しない期間まで遡りたい場合は、Actions の手動実行で `backfill_days` を指定する。
+`backfill_trend.py` が BOPS から一括 fetch し、`trend_daily/weekly/monthly.csv` に加えて
+**`trend_org_monthly.csv` も同じ口径で作り直す**。
+
+```
+Actions → "BOPS PPT Dashboard Daily" → Run workflow → backfill_days = 230
+（2026-01-01 まで遡る場合の目安。230 日 ≒ 2026-01 〜 現在）
+```
+
+⚠️ 注意:
+- `trend_*.csv` は**上書き**される（指定期間の外にあった古い点は消える）。
+- PPT 1 件ごとに詳細 API を叩くため、件数に比例して時間がかかる（1,000 件で 10 分前後）。
+  ジョブの `timeout-minutes` は 60 に設定済み。
+- BOPS 側にその期間のデータが残っているかは実行してみないと分からない。
+  残っていなければ、取得できた最古の月からになる。
+
 ## 明細ページ（detail.html）の列（Excel 準拠）
 
 ID / トピック / ユーザー / 会社 / 戦略 / 状態 / スライド数(一覧) / 実際 / 統計用 /

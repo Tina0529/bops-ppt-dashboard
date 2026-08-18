@@ -78,6 +78,12 @@
   .pill.up { background:rgba(16,185,129,.14); color:var(--success); } .pill.down { background:rgba(239,68,68,.14); color:var(--danger); } .pill.flat { background:rgba(127,127,127,.14); color:var(--muted); }
   .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
   .orgbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+  .osel { font-family:inherit; font-size:12.5px; font-weight:500; color:var(--text); background:var(--panel-2);
+          border:1px solid var(--border); border-radius:9px; padding:7px 11px; max-width:300px; cursor:pointer; }
+  .osel:hover { border-color:var(--primary-2); }
+  .osel:focus { outline:none; border-color:var(--primary-2); }
+  .orgtbl tbody tr.sel { background:var(--glow1); }
+  .orgtbl tbody tr.sel td { font-weight:600; }
   .orgbar .seg-btn { padding:6px 14px; font-size:12.5px; }
   .orgbar .hint { font-size:11.5px; color:var(--muted-2); margin-left:auto; }
   .orgwrap { overflow-x:auto; margin-top:16px; }
@@ -127,7 +133,7 @@
     </div>
   </div>
   <div class="panel hidden" id="orgPanel">
-    <h2>組織別 月次推移（生成本数）</h2>
+    <h2>組織別 月次推移（生成本数）<select class="osel" id="orgSel" style="margin-left:auto"></select></h2>
     <div class="legend-tip">会社ごとの月次生成本数の推移。グラフは上位6社を個別表示、それ以外は「その他」に集約。表は全社を掲載。</div>
     <div class="orgbar">
       <div class="seg" id="orgSeg">
@@ -163,6 +169,7 @@ const OPAL = ['#2f81d6','#38bdf8','#10b981','#f59e0b','#a855f7','#f472b6'];
 const OCOL_REST = '#94a3b8';
 const ORG_TOPN = 6;
 let orgMode = 'line';
+let orgSel = '__ALL__';   // '__ALL__' = 全社、それ以外は会社名
 let MONTHS = [], mSel = '', ARCH = {};  // 月次アーカイブ（過去月切替用）
 function curMonth(){ return (DATA.date||'').slice(0,7); }
 function monthNav(){
@@ -213,6 +220,17 @@ function orgSeries(){
   }
   return {months:O.months, series, totals:O.totals, all:cs, restN:rest.length};
 }
+function fillOrgSelect(){
+  const O = DATA.org_monthly, el = document.getElementById('orgSel');
+  if(!O || el.dataset.filled) return;
+  const opts = ['<option value="__ALL__">全社（上位6社＋その他）</option>']
+    .concat(O.companies.map(c=>'<option value="'+c.name.replace(/"/g,'&quot;')+'">'
+      + c.name + '（計' + c.total + '本）</option>'));
+  el.innerHTML = opts.join('');
+  el.dataset.filled = '1';
+  el.onchange = ()=>{ orgSel = el.value;
+    if(charts.org){ charts.org.destroy(); charts.org=null; } drawOrg(); };
+}
 function colorOf(name, idx, restN){
   return idx < ORG_TOPN ? OPAL[idx%OPAL.length] : OCOL_REST;
 }
@@ -221,54 +239,96 @@ function drawOrg(){
   const S = orgSeries();
   if(!S){ panel.classList.add('hidden'); return; }
   panel.classList.remove('hidden');
+  fillOrgSelect();
   const t = tc(), stacked = (orgMode === 'stack');
   const part = orgPartial();
   const xlabels = S.months.map(m => m === part ? m + ' ※進行中' : m);
-  charts.org = new Chart(o_trend, {
-    type: stacked ? 'bar' : 'line',
-    data: {labels:xlabels, datasets:S.series.map(x=>({
-      label:x.name, data:x.data, borderColor:x.color,
-      backgroundColor: stacked ? x.color : x.color+'22',
-      fill:false, tension:.3, pointRadius:3, pointBackgroundColor:x.color,
-      borderWidth:2, borderRadius: stacked?4:0, maxBarThickness:72
-    }))},
-    options:{
-      interaction:{mode:'index', intersect:false},
-      plugins:{
-        legend:{display:true, position:'bottom', labels:{color:t.axis, boxWidth:12, padding:14, font:{size:11.5}}},
-        title:titleOpt('組織別 月次生成本数' + (stacked ? '（積み上げ）' : '')),
-        tooltip:{callbacks:{footer:it=>'月合計 ' + it.reduce((a,x)=>a+(x.parsed.y||0),0) + ' 本'}}
-      },
-      scales:{x:{stacked, grid:{color:t.grid}, ticks:{color:t.axis}},
-              y:{stacked, grid:{color:t.grid}, ticks:{color:t.axis}, beginAtZero:true}}
-    }
-  });
+  const one = orgSel !== '__ALL__' ? S.all.find(c=>c.name === orgSel) : null;
+  const seg = document.getElementById('orgSeg');
+
+  if(one){
+    // 単一組織: 生成本数（棒）＋ 完成率（右軸の線）
+    seg.style.visibility = 'hidden';   // 単一社では積み上げに意味がないため隠す
+    charts.org = new Chart(o_trend, {
+      data: {labels:xlabels, datasets:[
+        {type:'bar', label:'生成本数', data:one.data, backgroundColor:OPAL[0],
+         borderRadius:4, maxBarThickness:72, yAxisID:'y', order:2},
+        {type:'line', label:'完成率(%)', data:one.comp, borderColor:CK.success,
+         backgroundColor:CK.success+'22', pointBackgroundColor:CK.success, pointRadius:4,
+         borderWidth:2, tension:.3, spanGaps:true, yAxisID:'y1', order:1}
+      ]},
+      options:{
+        interaction:{mode:'index', intersect:false},
+        plugins:{
+          legend:{display:true, position:'bottom', labels:{color:t.axis, boxWidth:12, padding:14, font:{size:11.5}}},
+          title:titleOpt(one.name + ' — 月次生成本数と完成率'),
+          tooltip:{callbacks:{label:c=>c.dataset.yAxisID==='y1'
+            ? '完成率 ' + (c.parsed.y===null?'—':c.parsed.y+'%')
+            : '生成本数 ' + c.parsed.y + ' 本'}}
+        },
+        scales:{
+          x:{grid:{color:t.grid}, ticks:{color:t.axis}},
+          y:{position:'left', grid:{color:t.grid}, ticks:{color:t.axis}, beginAtZero:true,
+             title:{display:true, text:'本数', color:t.axis, font:{size:11}}},
+          y1:{position:'right', grid:{display:false}, ticks:{color:t.axis, callback:v=>v+'%'},
+              beginAtZero:true, suggestedMax:100,
+              title:{display:true, text:'完成率', color:t.axis, font:{size:11}}}
+        }
+      }
+    });
+  } else {
+    seg.style.visibility = 'visible';
+    charts.org = new Chart(o_trend, {
+      type: stacked ? 'bar' : 'line',
+      data: {labels:xlabels, datasets:S.series.map(x=>({
+        label:x.name, data:x.data, borderColor:x.color,
+        backgroundColor: stacked ? x.color : x.color+'22',
+        fill:false, tension:.3, pointRadius:3, pointBackgroundColor:x.color,
+        borderWidth:2, borderRadius: stacked?4:0, maxBarThickness:72
+      }))},
+      options:{
+        interaction:{mode:'index', intersect:false},
+        plugins:{
+          legend:{display:true, position:'bottom', labels:{color:t.axis, boxWidth:12, padding:14, font:{size:11.5}}},
+          title:titleOpt('組織別 月次生成本数' + (stacked ? '（積み上げ）' : '')),
+          tooltip:{callbacks:{footer:it=>'月合計 ' + it.reduce((a,x)=>a+(x.parsed.y||0),0) + ' 本'}}
+        },
+        scales:{x:{stacked, grid:{color:t.grid}, ticks:{color:t.axis}},
+                y:{stacked, grid:{color:t.grid}, ticks:{color:t.axis}, beginAtZero:true}}
+      }
+    });
+  }
   // --- マトリクス表（全社）---
   const M = S.months, last = M.length-1, prev = M.length-2;
   const th = ['<th>会社</th>'].concat(M.map(m=>'<th style="text-align:right">'+m
       +(m===part?' <span style="color:var(--warning)">※</span>':'')+'</th>'))
     .concat(['<th style="text-align:right">合計</th>',
              '<th style="text-align:right">'+(part?'前月比 ※':'前月比')+'</th>']).join('');
-  const body = S.all.map((c,i)=>{
+  const shown = one ? S.all.filter(c=>c.name === one.name) : S.all;
+  const body = shown.map((c,i0)=>{
+    const i = S.all.indexOf(c);
     const cells = c.data.map(v=>'<td class="num'+(v?'':' zero')+'">'+(v||'—')+'</td>').join('');
     const d = prev>=0 ? c.data[last]-c.data[prev] : null;
     const cls = d===null ? 'flat' : (d>0?'up':(d<0?'down':'flat'));
     const dtxt = d===null ? '—' : (d>0?'+':'')+d;
     const dot = '<span class="dot" style="background:'+colorOf(c.name,i,S.restN)+'"></span>';
-    return '<tr'+(i>=ORG_TOPN?' class="rest"':'')+'><td class="co" title="'+c.name+'">'+dot+c.name+'</td>'
+    const rc = one ? ' class="sel"' : (i>=ORG_TOPN ? ' class="rest"' : '');
+    return '<tr'+rc+'><td class="co" title="'+c.name+'">'+dot+c.name+'</td>'
       + cells + '<td class="num"><b>'+c.total+'</b></td>'
       + '<td class="num '+cls+'">'+dtxt+'</td></tr>';
   }).join('');
   const grand = S.totals.reduce((a,b)=>a+b,0);
   const gd = prev>=0 ? S.totals[last]-S.totals[prev] : null;
   const gcls = gd===null ? 'flat' : (gd>0?'up':(gd<0?'down':'flat'));
-  const foot = '<tr><td>合計</td>' + S.totals.map(v=>'<td class="num">'+v+'</td>').join('')
+  const foot = '<tr><td>'+(one?'全社合計（参考）':'合計')+'</td>' + S.totals.map(v=>'<td class="num">'+v+'</td>').join('')
     + '<td class="num">'+grand+'</td>'
     + '<td class="num '+gcls+'">'+(gd===null?'—':(gd>0?'+':'')+gd)+'</td></tr>';
   document.getElementById('orgTbl').innerHTML =
     '<thead><tr>'+th+'</tr></thead><tbody>'+body+'</tbody><tfoot>'+foot+'</tfoot>';
-  document.getElementById('orgHint').textContent =
-    M[0]+' 〜 '+M[last]+' / 全'+S.all.length+'社 / 累計'+grand+'本';
+  document.getElementById('orgHint').textContent = one
+    ? M[0]+' 〜 '+M[last]+' / '+one.name+' 累計'+one.total+'本（全社比 '
+      + (grand ? (one.total/grand*100).toFixed(1) : '0') + '%）'
+    : M[0]+' 〜 '+M[last]+' / 全'+S.all.length+'社 / 累計'+grand+'本';
   document.getElementById('orgNote').innerHTML =
     (part ? '<b style="color:var(--warning)">※ '+part+' は集計途中（'+DATA.date
           +' 時点）です。締まった月との単純比較・前月比は過小に出ます。</b><br>' : '')

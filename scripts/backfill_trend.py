@@ -15,7 +15,8 @@ from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fetch_bops import _post, compute_durations, fetch_ppt_list, DETAIL_API, _ts  # noqa: E402
-from generate_xlsx import aggregate  # noqa: E402
+from generate_xlsx import aggregate, classify  # noqa: E402
+from org_trend import agg_by_company, upsert  # noqa: E402
 
 
 def to_row(label, group):
@@ -85,6 +86,21 @@ def main():
     write_csv(args.reports + '/trend_daily.csv', daily_rows)
     write_csv(args.reports + '/trend_weekly.csv', [to_row(k, v) for k, v in wk.items()])
     write_csv(args.reports + '/trend_monthly.csv', [to_row(k, v) for k, v in mo.items()])
+
+    # 組織（会社）別 月次推移も同時に作り直す。日次 cron の update_org_trend.py と
+    # 同一の集計口径（org_trend.agg_by_company）を通すので値がぶれない。
+    org_csv = args.reports + '/trend_org_monthly.csv'
+    if os.path.exists(org_csv):
+        os.remove(org_csv)
+    for month in sorted(mo):
+        per = agg_by_company([{
+            'company': r['company'],
+            'generated': classify(r['status'], r['logsCount'])[0] == 1,
+            'durationSec': r['durationSec'],
+            'actualSlides': r['actualSlides'],
+        } for r in mo[month]])
+        upsert(org_csv, month, per)
+    print(f'[backfill] org_monthly {sorted(mo)} → {org_csv}', file=sys.stderr)
     print(f'[backfill] daily {[r["label"] for r in daily_rows]}', file=sys.stderr)
     print(f'[backfill] weekly {sorted(wk)} / monthly {sorted(mo)}', file=sys.stderr)
 
