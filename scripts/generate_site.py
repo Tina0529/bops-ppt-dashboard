@@ -12,7 +12,8 @@ dashboard データは preview_html.build_period を再利用、明細は Excel 
   python3 generate_site.py --date 2026-06-14 --out-dir docs/data \
     --daily d.tsv \
     --weekly w.tsv [--weekly-prev wp.tsv] [--weekly-trend tw.csv] \
-    --monthly m.tsv [--monthly-prev mp.tsv] [--monthly-trend tm.csv]
+    --monthly m.tsv [--monthly-prev mp.tsv] [--monthly-trend tm.csv] \
+    [--org-trend trend_org_monthly.csv]
 """
 import argparse
 import json
@@ -22,6 +23,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from generate_xlsx import parse_tsv, classify, fmt_mmss  # noqa: E402
 from preview_html import build_period  # noqa: E402
+from org_trend import load as load_org_trend  # noqa: E402
 
 
 def detail_records(tsv):
@@ -55,6 +57,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--date', required=True)
     ap.add_argument('--out-dir', required=True)
+    ap.add_argument('--org-trend', help='trend_org_monthly.csv（組織別月次推移）')
     for k in ('daily', 'weekly', 'monthly'):
         ap.add_argument(f'--{k}')
         ap.add_argument(f'--{k}-prev')
@@ -75,6 +78,12 @@ def main():
         label = getattr(args, f'{k}_label') or defaults[k]
         dashboard[k] = build_period(k, label, tsv, getattr(args, f'{k}_prev'), getattr(args, f'{k}_trend'))
         detail[k] = detail_records(tsv)
+
+    # 組織別 月次推移（期間切替に依存しないグローバル系列）
+    org = load_org_trend(args.org_trend)
+    if org:
+        dashboard['org_monthly'] = org
+        print(f'[generate_site] org_monthly: {len(org["companies"])}社 × {len(org["months"])}ヶ月')
 
     with open(os.path.join(args.out_dir, 'dashboard.json'), 'w', encoding='utf-8') as f:
         json.dump(dashboard, f, ensure_ascii=False, separators=(',', ':'))

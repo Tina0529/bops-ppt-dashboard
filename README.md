@@ -78,12 +78,40 @@ bops-ppt-dashboard/
 │   ├── robots.txt             検索エンジン除外
 │   ├── .nojekyll
 │   └── data/                  CI が生成（dashboard.json / detail.json / trend_*.csv）
+│                              trend_org_monthly.csv = 組織別 月次推移（long 形式）
 ├── scripts/
 │   ├── generate_site.py       TSV → dashboard.json + detail.json（本リポジトリ固有）
+│   ├── org_trend.py           組織別 月次集計の共通ロジック（本リポジトリ固有）
+│   ├── update_org_trend.py    当月 TSV → trend_org_monthly.csv へ upsert（本リポジトリ固有）
+│   ├── backfill_org_trend.py  archive/*.json から組織別トレンドを再構築（本リポジトリ固有）
 │   ├── run_site.sh            オーケストレータ（本リポジトリ固有）
 │   └── （上記 1. でコピーする 8 ファイル）
 └── .github/workflows/daily.yml  毎晩 20:00 JST cron
 ```
+
+## 組織別 月次推移（生成本数）
+
+Dashboard 下部の「組織別 月次推移」パネル。会社ごとの月次生成本数を折れ線／積み上げ棒で
+切り替えて表示し、下に**全社のマトリクス表**（会社 × 月 + 合計 + 前月比）を出す。
+
+- データ源: `docs/data/trend_org_monthly.csv`（`month,company,total,generated,completion,avg_per_slide`）
+- 集計口径は `generate_xlsx.aggregate` と同一（`status=failed` / `logsCount<=1` は未生成扱い）。
+  月次合計は `trend_monthly.csv` の `total` / `generated` と一致する。
+- グラフは**上位6社を個別表示**、それ以外は「その他 N社」に集約。凡例クリックで表示/非表示を切替でき、
+  件数の多い社を隠すと小規模社の推移が読める。表は全社を掲載。
+- **集計途中の月には `※進行中` を表示**する。締まった月との単純比較・前月比は過小に出るため注意。
+- 会社名が空のレコードは `(未設定)` に寄せる。
+
+### 過去分の再構築（backfill）
+
+`docs/data/archive/*.json` があればオフラインで作り直せる（BOPS 接続不要）:
+
+```bash
+python3 scripts/backfill_org_trend.py
+# 既定: docs/data/archive → docs/data/trend_org_monthly.csv
+```
+
+> アーカイブが無い月（例: 2026-05）は組織別内訳を復元できない。月次合計のみ `trend_monthly.csv` に残る。
 
 ## 明細ページ（detail.html）の列（Excel 準拠）
 

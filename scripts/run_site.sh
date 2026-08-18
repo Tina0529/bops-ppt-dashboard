@@ -46,10 +46,14 @@ python3 "$F" --start "$MO_PREV_START" --end "$MO_PREV_END"  --out "$WORK/mprev.t
 TREND_D="$DATA_DIR/trend_daily.csv"
 TREND_W="$DATA_DIR/trend_weekly.csv"
 TREND_M="$DATA_DIR/trend_monthly.csv"
+TREND_OM="$DATA_DIR/trend_org_monthly.csv"
 D_LABEL=$(python3 -c "from datetime import datetime;print(datetime.strptime('$TARGET_DATE','%Y-%m-%d').strftime('%m-%d'))")
 python3 "$HERE/update_trend.py" "$WORK/daily.tsv"   "$D_LABEL"  "$TREND_D"
 python3 "$HERE/update_trend.py" "$WORK/weekly.tsv"  "$WK_LABEL" "$TREND_W"
 python3 "$HERE/update_trend.py" "$WORK/monthly.tsv" "$MO_LABEL" "$TREND_M"
+
+# 組織（会社）別 月次推移: 同一 month は全置換するので月途中の会社増減に追従
+python3 "$HERE/update_org_trend.py" "$WORK/monthly.tsv" "$MO_LABEL" "$TREND_OM"
 
 # --- 締め漏れ回補 ---
 # CI は JST 20時台に走るため、実行後〜24時の生成分がその日のトレンド点から漏れる。
@@ -80,6 +84,7 @@ fi
 if [ "$DOM" -le 2 ]; then
   python3 "$F" --start "$PMO_START" --end "$PMO_END" --out "$WORK/pmonth.tsv" \
     && python3 "$HERE/update_trend.py" "$WORK/pmonth.tsv" "$PMO_LABEL" "$TREND_M" \
+    && python3 "$HERE/update_org_trend.py" "$WORK/pmonth.tsv" "$PMO_LABEL" "$TREND_OM" \
     || echo "[run_site] 前月回補 スキップ"
 fi
 
@@ -89,7 +94,8 @@ MP=(); [ -s "$WORK/mprev.tsv" ] && MP=(--monthly-prev "$WORK/mprev.tsv")
 python3 "$HERE/generate_site.py" --date "$TARGET_DATE" --out-dir "$DATA_DIR" \
   --daily   "$WORK/daily.tsv"   --daily-trend "$TREND_D" --daily-label "${TARGET_DATE}（当日）" \
   --weekly  "$WORK/weekly.tsv"  ${WP[@]+"${WP[@]}"} --weekly-trend "$TREND_W" --weekly-label "${WK_START}〜${TARGET_DATE}（当週）" \
-  --monthly "$WORK/monthly.tsv" ${MP[@]+"${MP[@]}"} --monthly-trend "$TREND_M" --monthly-label "${MO_LABEL}（当月）"
+  --monthly "$WORK/monthly.tsv" ${MP[@]+"${MP[@]}"} --monthly-trend "$TREND_M" --monthly-label "${MO_LABEL}（当月）" \
+  --org-trend "$TREND_OM"
 
 # Lark 図表カード（DASHBOARD_URL があれば footer にクリック可能リンク）
 PREV="-"; [ -s "$WORK/wprev.tsv" ] && PREV="$WORK/wprev.tsv"
