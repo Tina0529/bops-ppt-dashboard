@@ -64,6 +64,16 @@ def _ts(s):
     return datetime.strptime(s.replace(' ', 'T')[:19], '%Y-%m-%dT%H:%M:%S').timestamp()
 
 
+def _to_jst(s):
+    """BOPS の createdAt/updatedAt/logs.createdAt は **UTC** 文字列（時差表記なし）。
+    ダッシュボードは JST 日付でバケットするため、取得直後に +9h して JST 文字列へ統一する。
+    2026-08-21 までこの変換が無く、日次/週次/月次の全バケットが 9 時間ズレていた。"""
+    if not s:
+        return s
+    t = datetime.strptime(str(s).replace(' ', 'T')[:19], '%Y-%m-%dT%H:%M:%S')
+    return (t + timedelta(hours=9)).strftime('%Y-%m-%d %H:%M:%S')
+
+
 # BOPS pageQuery はページングパラメータが currentPage（pageNum ではない）で、
 # pageSize は約 80 でサーバ側 cap される。1 ページだけ取ると月次が 80 件で
 # 頭打ちになるため、期間の下限を過ぎるまで全ページを舐める。
@@ -88,9 +98,9 @@ def fetch_ppt_list(headers, start_ts, end_ts):
             if biz in seen:
                 continue
             seen.add(biz)
-            if start_ts <= _ts(p['createdAt']) <= end_ts:
+            if start_ts <= _ts(_to_jst(p['createdAt'])) <= end_ts:
                 out.append(p)
-        oldest = min(_ts(p['createdAt']) for p in plist)
+        oldest = min(_ts(_to_jst(p['createdAt'])) for p in plist)
         pages = (data.get('paginator') or {}).get('pages')
         if oldest < start_ts or (pages and page >= pages):
             break
@@ -172,8 +182,8 @@ def main():
                 p.get('id', ''), p.get('topic', ''), p.get('username', ''),
                 p.get('companyName', ''), p.get('themePresetId') or '-', p.get('strategyName', ''),
                 p.get('status') or '', p.get('slideCount', 0), actual_slides,
-                p.get('createdAt', ''), dur['startTime'] or p.get('createdAt', ''),
-                dur['endTime'] or p.get('createdAt', ''), dur['durationSec'], len(logs),
+                _to_jst(p.get('createdAt', '')), _to_jst(dur['startTime'] or p.get('createdAt', '')),
+                _to_jst(dur['endTime'] or p.get('createdAt', '')), dur['durationSec'], len(logs),
                 dur['originalDurationSec'], dur['breakCount'], dur['maxGapSec'],
             ])
         except SystemExit:

@@ -14,7 +14,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from fetch_bops import _post, compute_durations, fetch_ppt_list, DETAIL_API, _ts  # noqa: E402
+from fetch_bops import _post, compute_durations, fetch_ppt_list, DETAIL_API, _ts, _to_jst  # noqa: E402
 from generate_xlsx import aggregate, classify  # noqa: E402
 from org_trend import agg_by_company, upsert  # noqa: E402
 
@@ -65,7 +65,7 @@ def main():
             recs.append({'company': p.get('companyName', ''), 'username': p.get('username', ''),
                          'status': p.get('status') or '', 'logsCount': len(logs),
                          'durationSec': dur['durationSec'], 'actualSlides': actual,
-                         'breakCount': dur['breakCount'], 'createdAt': p['createdAt']})
+                         'breakCount': dur['breakCount'], 'createdAt': _to_jst(p['createdAt'])})
         except Exception as e:
             print(f'  [warn] id={p.get("id")} 詳細取得失敗: {e}', file=sys.stderr)
 
