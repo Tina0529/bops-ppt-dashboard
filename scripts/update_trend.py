@@ -12,6 +12,7 @@ CSV 列: label,total,generated,completion,avg_per_slide
 """
 import csv
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -31,8 +32,24 @@ def main():
     rows = []
     if os.path.exists(csv_path):
         with open(csv_path, encoding='utf-8') as f:
-            rows = [r for r in csv.DictReader(f) if r.get('label') != label]
-    rows.append(row)
+            rows = list(csv.DictReader(f))
+
+    # 既存 label は「その場で」差し替える。削除して末尾に付け直すと並び順が壊れる。
+    # 実害例（2026-09-01 発見）: 9/1 に 2026-09 を追記したあと 8 月を補跑した結果、
+    # trend_monthly.csv が …07, 09, 08 の順になり折線グラフの X 軸が逆転した。
+    for i, r in enumerate(rows):
+        if r.get('label') == label:
+            rows[i] = row
+            break
+    else:
+        rows.append(row)
+
+    # 月次（YYYY-MM）は年が入っていて曖昧さがないので、念のため昇順に整える。
+    # 日次/週次の label（MM-DD / MM-DD週）は年を持たず年跨ぎで誤るため並べ替えない
+    # ——上の原位置更新で順序が保たれる。
+    if all(re.fullmatch(r'\d{4}-\d{2}', r['label'] or '') for r in rows):
+        rows.sort(key=lambda r: r['label'])
+
     rows = rows[-MAX_POINTS:]
 
     with open(csv_path, 'w', encoding='utf-8', newline='') as f:
