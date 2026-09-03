@@ -1,0 +1,5 @@
+.sessions.json
+.threads.json
+.lock
+.meeting_seen
+.tick.log
