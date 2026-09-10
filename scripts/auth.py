@@ -24,8 +24,10 @@ bops-ppt-monitor の CI で BOPS_TOKEN を毎回自動取得するため、姉�
 """
 
 import asyncio
+import json
 import os
 import sys
+import time
 from playwright.async_api import async_playwright
 
 
@@ -75,6 +77,22 @@ async def main() -> int:
 
         # 拦截 response header（用户实测确认 token 在 API 响应 header 里）
         async def on_response(response) -> None:
+            # Keycloak の token エンドポイント応答は最優先で読む。
+            # access_token(寿命5分) と一緒に refresh_token が返るので、これを持ち帰れば
+            # 以後の更新はブラウザ無し・パスワード無しの refresh grant で済む。
+            if "/protocol/openid-connect/token" in response.url:
+                try:
+                    body = await response.json()
+                    if isinstance(body, dict) and body.get("access_token"):
+                        captured["token"] = body["access_token"]
+                        captured["source"] = "keycloak token endpoint body"
+                        if body.get("refresh_token"):
+                            captured["refresh_token"] = body["refresh_token"]
+                            captured["refresh_expires_in"] = body.get("refresh_expires_in")
+                            captured["expires_in"] = body.get("expires_in")
+                except Exception:
+                    pass
+                return
             if "token" in captured:
                 return
             headers = response.headers  # 已 lowercase
@@ -126,15 +144,78 @@ async def main() -> int:
             print(f"→ 打开 {login_url}", file=sys.stderr)
         await page.goto(login_url, wait_until="domcontentloaded")
 
-        # 2. 等表单渲染（SPA 可能需要时间）
-        await page.wait_for_selector('input[autocomplete="username"]', timeout=10000)
+        # 2. ログイン方式を判定
+        #    2026-09-09 深夜、BOPS は自前のログインフォームを廃止し
+        #    Keycloak(iam.sparticle.com/realms/saas) の SSO に移行した。
+        #    旧フォームが残っている環境（ロールバック等）でも動くよう両対応にする。
+        use_sso = True
+        try:
+            await page.wait_for_selector('input[autocomplete="username"]', timeout=5000)
+            use_sso = False
+        except Exception:
+            pass
 
-        # 3. 填表单（用 autocomplete 属性最稳，跨语言不受 placeholder 影响）
-        await page.fill('input[autocomplete="username"]', username)
-        await page.fill('input[autocomplete="current-password"]', password)
+        if not use_sso:
+            # --- 旧フロー: BOPS 自前のユーザー名/パスワードフォーム ---
+            if DEBUG:
+                print("→ 旧ログインフォームを検出", file=sys.stderr)
+            await page.fill('input[autocomplete="username"]', username)
+            await page.fill('input[autocomplete="current-password"]', password)
+            await page.click('button[type="submit"]')
+        else:
+            # --- 新フロー: 「単点登录」→ Keycloak ---
+            if DEBUG:
+                print("→ SSO ログイン画面を検出、単点登录へ", file=sys.stderr)
+            sso = page.locator(
+                'button:has-text("单点登录"), button:has-text("單點登入"), '
+                'button:has-text("シングルサインオン"), button:has-text("SSO"), '
+                'button:has-text("Single Sign"), button.ant-btn-primary'
+            ).first
+            try:
+                await sso.wait_for(state="visible", timeout=15000)
+            except Exception:
+                raise RuntimeError(
+                    "ログインページに入力欄も SSO ボタンも見つかりません。"
+                    "BOPS のログイン画面仕様が再度変わった可能性があります"
+                )
+            await sso.click()
 
-        # 4. 提交
-        await page.click('button[type="submit"]')
+            # Keycloak のログイン画面へのリダイレクトを待つ
+            try:
+                await page.wait_for_url("**/protocol/openid-connect/auth*", timeout=25000)
+            except Exception:
+                raise RuntimeError(
+                    f"SSO ボタン押下後、Keycloak へ遷移しませんでした（現在: {page.url}）"
+                )
+
+            # Keycloak 標準テンプレートのフォーム（#username / #password は
+            # Keycloak が長年変えていない ID なので selector として安定）
+            await page.wait_for_selector("#username", timeout=20000)
+            await page.fill("#username", username)
+            await page.fill("#password", password)
+            await page.click("#kc-login, input[type=submit], button[type=submit]")
+
+            # 認証失敗 / MFA を早期に検出する（そのまま待つと 30 秒無駄にした上に
+            # 「token が取れない」という真因の分からないエラーになる）
+            await page.wait_for_timeout(3000)
+            if "/protocol/openid-connect/auth" in page.url or "/login-actions/" in page.url:
+                body = ""
+                try:
+                    body = (await page.inner_text("body"))[:400]
+                except Exception:
+                    pass
+                low = body.lower()
+                if any(k in low for k in ("otp", "認証コード", "one-time", "二段階", "verification code")):
+                    raise RuntimeError(
+                        "Keycloak が多要素認証(MFA)を要求しています。"
+                        "自動化には service account の発行が必要です"
+                    )
+                if any(k in low for k in ("invalid", "正しくありません", "無効", "错误", "incorrect")):
+                    raise RuntimeError(
+                        "Keycloak がログインを拒否しました。BOPS_USERNAME は "
+                        "Sparticle アカウントの【メールアドレス】である必要があります"
+                        f"（現在の指定: {username!r}）"
+                    )
         if DEBUG:
             print("→ 已点击提交，等待 token 出现…", file=sys.stderr)
 
@@ -172,6 +253,23 @@ async def main() -> int:
 
     token = captured["token"]
     source = captured.get("source", "?")
+
+    # refresh_token を呼び出し元（bops.py 等）に渡す。ファイル経由にするのは
+    # stdout の「最終行 = token」契約を壊さないため。
+    refresh_file = os.environ.get("BOPS_AUTH_REFRESH_FILE")
+    if refresh_file and captured.get("refresh_token"):
+        os.makedirs(os.path.dirname(os.path.abspath(refresh_file)) or ".", exist_ok=True)
+        with open(refresh_file, "w", encoding="utf-8") as f:
+            json.dump({
+                "refresh_token": captured["refresh_token"],
+                "refresh_exp": int(time.time()) + int(captured.get("refresh_expires_in") or 1800),
+                "access_expires_in": captured.get("expires_in"),
+                "obtained_at": int(time.time()),
+            }, f)
+        os.chmod(refresh_file, 0o600)
+        if DEBUG:
+            print(f"→ refresh_token を {refresh_file} に保存"
+                  f"（有効 {captured.get('refresh_expires_in')}s）", file=sys.stderr)
 
     output_file = os.environ.get("GITHUB_OUTPUT")
     if output_file:
