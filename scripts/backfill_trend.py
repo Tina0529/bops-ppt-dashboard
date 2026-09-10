@@ -44,7 +44,7 @@ def main():
     token = os.environ.get('BOPS_TOKEN')
     if not token:
         raise SystemExit('[backfill] BOPS_TOKEN 未設定')
-    tt = os.environ.get('BOPS_TOKEN_TYPE', 'Bearer')
+    tt = (os.environ.get('BOPS_TOKEN_TYPE') or 'Bearer')  # 空文字は Bearer 扱い（CI で secret 未定義→'' になり 401 になった実害あり）
     headers = {'Content-Type': 'application/json', 'Authorization': f'{tt} {token}'}
 
     end = datetime.strptime(args.end, '%Y-%m-%d')

@@ -64,7 +64,7 @@ jobs:
         if: ${{ inputs.backfill_days != '' }}
         env:
           BOPS_TOKEN: ${{ steps.auth.outputs.token || secrets.BOPS_TOKEN }}
-          BOPS_TOKEN_TYPE: ${{ secrets.BOPS_TOKEN_TYPE }}
+          BOPS_TOKEN_TYPE: ${{ secrets.BOPS_TOKEN_TYPE || 'Bearer' }}
         run: |
           python3 scripts/backfill_trend.py --end "${{ steps.date.outputs.target }}" \
             --days "${{ inputs.backfill_days }}" --reports docs/data
@@ -74,7 +74,7 @@ jobs:
         continue-on-error: true
         env:
           BOPS_TOKEN: ${{ steps.auth.outputs.token || secrets.BOPS_TOKEN }}
-          BOPS_TOKEN_TYPE: ${{ secrets.BOPS_TOKEN_TYPE }}
+          BOPS_TOKEN_TYPE: ${{ secrets.BOPS_TOKEN_TYPE || 'Bearer' }}
           LARK_WEBHOOK: ${{ secrets.LARK_WEBHOOK_GBASE_PPT_DAILY_MONITOR }}
           TARGET_DATE: ${{ steps.date.outputs.target }}
           DASHBOARD_URL: https://tina0529.github.io/bops-ppt-dashboard/
