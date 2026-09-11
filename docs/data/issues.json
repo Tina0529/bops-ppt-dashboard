@@ -3,7 +3,12 @@
     "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242",
     "issue_number": 242,
     "state": "open",
-    "last_seen": "2026-08-21"
+    "last_seen": "2026-08-21",
+    "lark_task": {
+      "guid": "12fb3d78-3d72-495e-b608-a83ae0d4f739",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=12fb3d78-3d72-495e-b608-a83ae0d4f739",
+      "created": "追記"
+    }
   },
   "毛利　研|AGC素材業界2050年を見": {
     "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242",
@@ -31,7 +36,12 @@
     "state": "open",
     "last_seen": "2026-08-25",
     "biz_id": "c044618d-4973-4875-920c-0f0e2c1e5ef2",
-    "note": "outline挿入頁 slide8-373a が破棄され1頁欠落（status は content_generated）"
+    "note": "outline挿入頁 slide8-373a が破棄され1頁欠落（status は content_generated）",
+    "lark_task": {
+      "guid": "2a6fa011-5daa-40f4-a850-cc98aad5035b",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=2a6fa011-5daa-40f4-a850-cc98aad5035b",
+      "created": "追記"
+    }
   },
   "駒場 謙允|循環型サプライチェーンの構築": {
     "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/245",
@@ -161,11 +171,19 @@
     "note": "09-09 確認待ち → content 未生成のまま放棄。同 container で別主題 id2184 を新規作成し完了。#242 の裏付け候補（単発のため未追記）"
   },
   "藤本彰仁|国内タレントマネジメントパッケ": {
-    "issue_url": null,
-    "state": "waiting_user",
-    "last_seen": "2026-09-10",
-    "bizId": "9372b9a9-59f0-4938-940d-8fde553abe5c",
-    "containerId": "2097926799234605113",
-    "note": "outline 13頁正常生成→確認カード提示済み、ユーザー未回答。初回利用のため未起票。09-11 に再点検"
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-09-11",
+    "biz_id": "9372b9a9-59f0-4938-940d-8fde553abe5c",
+    "note": "9/10 確認門停滞→9/11 ユーザーが contents=0 の空殻を PPTX エクスポート（跨日持続）"
+  },
+  "西本百合香|台湾における商業展開の実績": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/245",
+    "issue_number": 245,
+    "state": "open",
+    "last_seen": "2026-09-11",
+    "biz_id": "124f3235-047d-4d95-a117-75b4872752b1",
+    "note": "outline3回編集で sectionId 錯位・slide_2 重複。欠頁なし8頁揃う（#245 の変種）"
   }
 }
