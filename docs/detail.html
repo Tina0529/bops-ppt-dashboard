@@ -48,6 +48,8 @@
   tbody tr:hover { background:rgba(127,127,127,.06); }
   tr.excluded td { background:var(--excluded); color:var(--muted); }
   tr.brk td.brkcell { background:var(--break); }
+  a.issue { color:var(--accent,#7aa2ff); text-decoration:none; white-space:nowrap; }
+  a.issue:hover { text-decoration:underline; }
   .topic { max-width:340px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   td.num { text-align:right; font-variant-numeric:tabular-nums; }
   .badge { display:inline-block; padding:1px 8px; border-radius:999px; font-size:11px; font-weight:600;
@@ -93,6 +95,7 @@ const COLS = [
   {k:'company', label:'会社'},
   {k:'strategy', label:'戦略'},
   {k:'status', label:'状態', badge:true},
+  {k:'issue', label:'Issue', link:true},
   {k:'slideCount', label:'スライド数(一覧)', num:true},
   {k:'actualSlides', label:'実際', num:true},
   {k:'statSlides', label:'統計用', num:true},
@@ -122,7 +125,7 @@ function rows(){
   let r = (DATA[cur]||[]).slice();
   if(query){
     const q = query.toLowerCase();
-    r = r.filter(x => [x.topic,x.username,x.company,x.strategy].some(v => (v||'').toLowerCase().includes(q)));
+    r = r.filter(x => [x.topic,x.username,x.company,x.strategy,x.issueNo&&('#'+x.issueNo)].some(v => (v||'').toLowerCase().includes(q)));
   }
   r.sort((a,b)=>{
     let va=a[sortKey], vb=b[sortKey];
@@ -153,6 +156,11 @@ function render(){
     return `<tr class="${ex} ${bk}">` + COLS.map(c=>{
       let v = x[c.k]; if(v===undefined||v===null) v='';
       const cls = (c.num?'num ':'') + (c.cls||'') + (c.brk&&bk?' brkcell':'');
+      if(c.link){
+        if(!x.issueUrl) return `<td class="${cls}"></td>`;
+        const t = `${x.issueState||''} ${x.issueDate||''}`.trim();
+        return `<td class="${cls}"><a class="issue" href="${x.issueUrl}" target="_blank" rel="noopener" title="${t}">#${x.issueNo}${x.issueKind?' '+x.issueKind:''}</a></td>`;
+      }
       if(c.badge) v = `<span class="badge">${v||'—'}</span>`;
       else if(c.cls==='topic') return `<td class="${cls}" title="${String(v).replace(/"/g,'&quot;')}">${v}</td>`;
       return `<td class="${cls}">${v}</td>`;
@@ -179,12 +187,34 @@ document.getElementById('search').oninput = e=>{ query=e.target.value.trim(); re
     document.getElementById('tbody').innerHTML = `<tr><td colspan="${COLS.length}" style="padding:20px;color:var(--muted)">データ未生成（CI 実行後に表示されます）</td></tr>`;
     renderHead();
   };
-  fetch('./data/detail.json?_='+Date.now()).then(r=>r.json()).then(d=>{
+  // 起票 issue の紐付け（dy-ppt-quality-monitor が run 後に docs/data/ へ push する）
+  //   issue_links.json : BOPS id → issue（2026-09-11 以降、起票/追記時に helper が記録）
+  //   issues.json      : 「ユーザー|主題キー」→ issue（監視の重複判定 state。過去分の兜底）
+  const loadJson = u => fetch(u+'?_='+Date.now()).then(r=>r.ok?r.json():{}).catch(()=>({}));
+  let LINKS={}, ISSUES={};
+  // 主題キーは監視側の生成が 6〜16 文字とブレるため、同一ユーザー内で前方一致すれば紐付ける
+  const norm = t => String(t||'').replace(/[\s\p{P}\p{S}]/gu,'');
+  let IDX = {};   // user → [{key, link}]
+  function buildIdx(){ IDX={}; for(const k in ISSUES){ const i=k.indexOf('|'); if(i<0) continue;
+    const u=k.slice(0,i).trim(), tk=norm(k.slice(i+1)); (IDX[u]=IDX[u]||[]).push({tk, l:ISSUES[k]}); } }
+  function fuzzy(x){ const c=IDX[(x.username||'').trim()]; if(!c) return null; const t=norm(x.topic);
+    for(const {tk,l} of c){ if(tk.length>=6 && (t.startsWith(tk) || tk.startsWith(t.slice(0,Math.max(6,tk.length))))) return l; } return null; }
+  function annotate(list){
+    for(const x of (list||[])){
+      const l = LINKS[String(x.id)] || fuzzy(x);
+      if(!l) continue;
+      x.issueUrl=l.url||l.issue_url; x.issueNo=l.issue||l.issue_number||((String(x.issueUrl).match(/issues\/(\d+)/)||[])[1]); x.issueKind=l.kind||'';
+      x.issueState=l.state||''; x.issueDate=l.date||l.last_seen||'';
+    }
+    return list;
+  }
+  Promise.all([loadJson('./data/detail.json'), loadJson('./data/issue_links.json'), loadJson('./data/issues.json')]).then(([d,l,i])=>{
+    LINKS=l||{}; ISSUES=i||{}; buildIdx();
     META = d;
     if(qMonth && qMonth !== (d.date||'').slice(0,7)){
       // 過去月アーカイブ表示: 月次明細のみ（当日/当週タブは非表示）
       return fetch('./data/archive/'+qMonth+'.json?_='+Date.now()).then(r=>r.json()).then(a=>{
-        DATA = {daily:[], weekly:[], monthly:a.detail||[]};
+        DATA = {daily:[], weekly:[], monthly:annotate(a.detail||[])};
         cur = 'monthly';
         document.querySelectorAll('#seg .seg-btn').forEach(b=>{
           b.classList.toggle('active', b.dataset.k==='monthly');
@@ -199,7 +229,7 @@ document.getElementById('search').oninput = e=>{ query=e.target.value.trim(); re
         render();
       });
     }
-    DATA = {daily:d.daily||[], weekly:d.weekly||[], monthly:d.monthly||[]};
+    DATA = {daily:annotate(d.daily||[]), weekly:annotate(d.weekly||[]), monthly:annotate(d.monthly||[])};
     document.getElementById('sub').textContent =
       `基準日 ${d.date||'?'} ｜ 当日 ${DATA.daily.length} 件 / 当週 ${DATA.weekly.length} 件 / 当月 ${DATA.monthly.length} 件`;
     document.getElementById('foot').innerHTML = FOOT;

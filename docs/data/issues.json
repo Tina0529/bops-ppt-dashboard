@@ -1,0 +1,171 @@
+{
+  "玉井 思郎|サプライチェーンリス": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-08-21"
+  },
+  "毛利　研|AGC素材業界2050年を見": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-08-21"
+  },
+  "増田　瑛|CROSSGraphLink": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-08-21"
+  },
+  "駒場 謙允|サプライチェーンファイナンス": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-08-24",
+    "biz_id": "14663bb0-8e1e-430b-88cd-266486c05568",
+    "note": "outline完成後 AskUserQuestion 確認門で停止（未回答）"
+  },
+  "駒場 謙允|サプライチェーンファイナンス関連": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/245",
+    "issue_number": 245,
+    "state": "open",
+    "last_seen": "2026-08-25",
+    "biz_id": "c044618d-4973-4875-920c-0f0e2c1e5ef2",
+    "note": "outline挿入頁 slide8-373a が破棄され1頁欠落（status は content_generated）"
+  },
+  "駒場 謙允|循環型サプライチェーンの構築": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/245",
+    "issue_number": 245,
+    "state": "open",
+    "last_seen": "2026-08-25",
+    "biz_id": "341541c4-e9ab-4abc-98f5-05b676efebd2",
+    "note": "outline挿入頁 slide6-b52e が破棄され1頁欠落"
+  },
+  "Shimizu|自動車業界EV化等の需要変化": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/245",
+    "issue_number": 245,
+    "state": "open",
+    "last_seen": "2026-08-25",
+    "biz_id": "cf2e70d5-8707-4b6c-8407-46c5e59f006e",
+    "note": "outline削除編集後に末尾2頁が重複生成。ユーザーは1時間後に別テンプレで再作成（69f4baa0 正常）"
+  },
+  "毛利　研|AGC2040年戦略アウトル": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/245",
+    "issue_number": 245,
+    "state": "open",
+    "last_seen": "2026-08-27",
+    "biz_id": "a0676045-f4e9-4d34-bbca-7b7c3fc7a119",
+    "note": "outline再編成で挿入頁4件(slide19-70e5/slide19-4a22/slide20-c67d/slide21-534c)+slide_23 の計5頁が plans/contents 未生成。status は空のまま。agent はユーザーに『全27枚』と報告。#245 の6例目・最大規模"
+  },
+  "松崎 航|金融業界におけるBPO化の今": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-08-27",
+    "biz_id": "37244669-55c0-4c47-b875-903c38d9e5eb",
+    "note": "『最終確認: この設定で開始』を押した後も outline 完成時に再び確認カード→11時間37分放置。4turn 全てが AskUserQuestion 終端"
+  },
+  "藤生 典孝|アスフィー国際特許事務所様": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/246",
+    "issue_number": 246,
+    "state": "open",
+    "last_seen": "2026-08-27",
+    "biz_id": "cef0e77b-5ea9-427c-9a36-4e13c6239283",
+    "note": "1枚生成でページタイトル＝資料タイトルのため cover 版式と誤判定され本文欠落。status は content_generated（新規起票）"
+  },
+  "西本百合香|ECサイトにおけるQRコード": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/245",
+    "issue_number": 245,
+    "state": "open",
+    "last_seen": "2026-08-28",
+    "biz_id": "ccefc862-6025-4e6d-97f7-f1fabbdc4701",
+    "note": "非連番id slide5-678d により contents が位置ベース再採番→『総合示唆』頁が欠落し closing 頁で穴埋め。追加した『参考資料』頁も slide_6 重複＋本文空（out 422tk）。#245 の7例目"
+  },
+  "Shimizu|調査会社選定に関する提案書ド": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/245",
+    "issue_number": 245,
+    "state": "open",
+    "last_seen": "2026-09-01",
+    "biz_id": "cc5cd029-27dd-4449-9b68-7eb708bd4dd4",
+    "note": "outline12頁(slide_9をユーザー削除)に対し plans/contents が13頁生成、slide_11 が重複（plans側は slide_13 重複）。status は content_generated。#245 の8例目・Shimizu様2例目（8/25 cf2e70d5 と同一パターン）"
+  },
+  "松崎 航|コンサル業界の市場動向分析": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-09-01",
+    "biz_id": "585b56db-b35f-408e-9e0d-8370244b30de",
+    "note": "『生成設定確認: この設定で開始する』押下後、outline10頁完成時に再び確認カード→8.7時間放置。plans/contents=0、logs=1。8/27 37244669 と同一挙動の反復（同一ユーザー2回目）"
+  },
+  "増田　瑛|4社の最新中期経営計画と対象": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-09-01",
+    "biz_id": "dc6580fc-1652-4022-ae18-22900ae968aa",
+    "note": "1巡目は13頁正常完成。『比較でなく個社別に』の追加指示後、2巡目 outline11頁を17:54に書き込み済みだが確認カードで停止。outline(11頁 slide001系)とcontents(13頁 slide_N系)が不整合、status は空のまま"
+  },
+  "トゥムル|TBRCGlobalMark": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/256",
+    "issue_number": 256,
+    "state": "open",
+    "last_seen": "2026-09-02",
+    "biz_id": "4edf5cc3-cf52-4c7c-90e6-e21a4e407872",
+    "note": "13頁中 slide_10 の本文が空。初回01:28・再生成02:03 とも gemini success(out 1979/2215)だが落庫は外殻のみ。agent は「反映済み」と報告するも実体は空のまま"
+  },
+  "滕宇明|策略ID验收": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/246",
+    "issue_number": 246,
+    "state": "open",
+    "last_seen": "2026-09-02",
+    "biz_id": "1fc1bd8d-80b4-44e7-ae92-970944707cb6",
+    "note": "社内検証案件。1節かつ節title==資料title → outline.sections[0].type='cover' が庫内に保存されており #246 の因果链を確証（指標の分母からは除外）"
+  },
+  "田中|2040年を見据えたAI時代": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-09-03",
+    "biz_id": "e2b51bbf-cd43-44c1-b38d-73efcb31f9f3",
+    "container_id": "2095450617079570437",
+    "note": "最終確認「生成開始」後に 640s/$3.20 消費し outline 0頁のまま再度 AskUserQuestion（#242 の 6 例目・最重）",
+    "comment_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-5525899126"
+  },
+  "小菅崇生|三井住友信託銀行（SMTB）": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242",
+    "state": "open",
+    "last_seen": "2026-09-04"
+  },
+  "今村 達也|調達購買改革コンサルティング": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-09-08",
+    "biz_id": "d7841289-3235-4854-95e8-447f65caa81d",
+    "note": "outline15頁完成後 AskUserQuestion 確認門で停止（12時間未回答）。同主題を09-04(id2176)に成功生成済み＝改版重做ケース"
+  },
+  "Hiroshi Sasaki|日本におけるAI計算需要需要サ": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/245",
+    "issue_number": 245,
+    "state": "open",
+    "last_seen": "2026-09-09",
+    "biz_id": "ec6e12b4-93d9-4170-accd-7d58c649507d",
+    "note": "削除を伴う outline 再構成(11頁→8頁)後、plans/contents が一切再生成されず旧11頁のまま export された。#245 の削除方向・第7例"
+  },
+  "Hiroshi Sasaki|日本におけるデータセンター向": {
+    "issue_url": null,
+    "issue_number": null,
+    "state": "abandoned_by_user",
+    "last_seen": "2026-09-10",
+    "biz_id": "0ffede7f-2265-42e0-8ea6-4b53fbeb63f8",
+    "note": "09-09 確認待ち → content 未生成のまま放棄。同 container で別主題 id2184 を新規作成し完了。#242 の裏付け候補（単発のため未追記）"
+  },
+  "藤本彰仁|国内タレントマネジメントパッケ": {
+    "issue_url": null,
+    "state": "waiting_user",
+    "last_seen": "2026-09-10",
+    "bizId": "9372b9a9-59f0-4938-940d-8fde553abe5c",
+    "containerId": "2097926799234605113",
+    "note": "outline 13頁正常生成→確認カード提示済み、ユーザー未回答。初回利用のため未起票。09-11 に再点検"
+  }
+}
