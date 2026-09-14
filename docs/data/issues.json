@@ -185,5 +185,11 @@
     "last_seen": "2026-09-11",
     "biz_id": "124f3235-047d-4d95-a117-75b4872752b1",
     "note": "outline3回編集で sectionId 錯位・slide_2 重複。欠頁なし8頁揃う（#245 の変種）"
+  },
+  "遠藤　貴史|Sparticle株式会社 会社": {
+    "issue_url": null,
+    "state": "waiting_user_input",
+    "last_seen": "2026-09-14",
+    "note": "資料庫にSparticle資料なし＋Web調査オフでagentが資料提供を要求、ユーザー未回答。8分後に別トピックで自己回復(2191成功)。プログラム異常ではない"
   }
 }
