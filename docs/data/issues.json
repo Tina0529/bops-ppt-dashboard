@@ -191,5 +191,15 @@
     "state": "waiting_user_input",
     "last_seen": "2026-09-14",
     "note": "資料庫にSparticle資料なし＋Web調査オフでagentが資料提供を要求、ユーザー未回答。8分後に別トピックで自己回復(2191成功)。プログラム異常ではない"
+  },
+  "藤生 典孝|大岡ゼミナール 2026ゼミ説明会": {
+    "issue_url": null,
+    "state": "waiting_user_input",
+    "last_seen": "2026-09-15"
+  },
+  "西本百合香|蠟筆小新(クレヨンしんちゃん)": {
+    "issue_url": null,
+    "state": "waiting_user_input",
+    "last_seen": "2026-09-15"
   }
 }
