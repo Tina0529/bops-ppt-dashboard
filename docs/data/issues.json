@@ -198,8 +198,42 @@
     "last_seen": "2026-09-15"
   },
   "西本百合香|蠟筆小新(クレヨンしんちゃん)": {
-    "issue_url": null,
-    "state": "waiting_user_input",
-    "last_seen": "2026-09-15"
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-5697589822",
+    "state": "open",
+    "last_seen": "2026-09-16",
+    "issue_number": 242,
+    "biz_id": "48c2ca31-a98d-4783-b8af-9b5d79e36fc4",
+    "note": "outline 8節完成後 確認門停止。09-16 21:30 時点も未回答（約34時間放置）→ #242 へ追記",
+    "lark_task": {
+      "guid": "12fb3d78-3d72-495e-b608-a83ae0d4f739",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=12fb3d78-3d72-495e-b608-a83ae0d4f739",
+      "created": "追記"
+    }
+  },
+  "西本百合香|2030年に向けたelevi": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-5697589822",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-09-16",
+    "lark_task": {
+      "guid": "12fb3d78-3d72-495e-b608-a83ae0d4f739",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=12fb3d78-3d72-495e-b608-a83ae0d4f739",
+      "created": "追記"
+    },
+    "biz_id": "db7dd098-7c3f-4deb-8fc8-616e2a8a00bb",
+    "note": "outline 14節完成後 AskUserQuestion 確認門で停止（未回答）。同ユーザー 09-15(2194) に続き2日連続＝確認待ちの反復"
+  },
+  "高垣浩一|コンスーマー向けセキュリティ": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-5697589822",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-09-16",
+    "lark_task": {
+      "guid": "12fb3d78-3d72-495e-b608-a83ae0d4f739",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=12fb3d78-3d72-495e-b608-a83ae0d4f739",
+      "created": "追記"
+    },
+    "biz_id": "67ed8a50-2ee3-4e18-82ca-e491c9af836c",
+    "note": "contents 10/10/10 完全生成・欠頁なしだが project.status が空のまま＝BOPS 上「未生成」表示（status 可視化問題）"
   }
 }
