@@ -211,17 +211,17 @@
     }
   },
   "西本百合香|2030年に向けたelevi": {
-    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-5697589822",
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-5715233039",
     "issue_number": 242,
     "state": "open",
-    "last_seen": "2026-09-16",
+    "last_seen": "2026-09-17",
     "lark_task": {
       "guid": "12fb3d78-3d72-495e-b608-a83ae0d4f739",
       "url": "https://applink.larksuite.com/client/todo/detail?guid=12fb3d78-3d72-495e-b608-a83ae0d4f739",
       "created": "追記"
     },
-    "biz_id": "db7dd098-7c3f-4deb-8fc8-616e2a8a00bb",
-    "note": "outline 14節完成後 AskUserQuestion 確認門で停止（未回答）。同ユーザー 09-15(2194) に続き2日連続＝確認待ちの反復"
+    "biz_id": "3b5ad687-1692-4879-bcd6-21e303238d67",
+    "note": "09-17 も同主題で再作成(2205)し確認門で停止。09-16 の 2200 は 27時間後に updatedAt 更新されたが plans/contents=0 のまま→5分後に 2205 を新規作成。西本様は 09-15/16/17 の3日連続"
   },
   "高垣浩一|コンスーマー向けセキュリティ": {
     "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-5697589822",
@@ -235,5 +235,31 @@
     },
     "biz_id": "67ed8a50-2ee3-4e18-82ca-e491c9af836c",
     "note": "contents 10/10/10 完全生成・欠頁なしだが project.status が空のまま＝BOPS 上「未生成」表示（status 可視化問題）"
+  },
+  "吉弘直子|J&T環境会社概要提案準備資": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-5715233039",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-09-17",
+    "biz_id": "441cee3e-7786-42d1-bca8-09d288e67c55",
+    "note": "outline 10節完成後 AskUserQuestion 確認門で停止（22:30 JST 時点 約12時間50分未回答）。確認門停滞の2人目のユーザー",
+    "lark_task": {
+      "guid": "12fb3d78-3d72-495e-b608-a83ae0d4f739",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=12fb3d78-3d72-495e-b608-a83ae0d4f739",
+      "created": "追記"
+    }
+  },
+  "小菅崇生|SMTB富裕層戦略ディスカッ": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/245#issuecomment-5715237663",
+    "issue_number": 245,
+    "state": "open",
+    "last_seen": "2026-09-17",
+    "biz_id": "bf166d23-f390-478e-953d-d0887a04201a",
+    "note": "outline 挿入頁 slide_14a が contents 側で slide_1〜27 に位置ベース再採番。欠頁なし27/27・タイトル全一致（#245 の変種・機構未修正の実証）",
+    "lark_task": {
+      "guid": "2a6fa011-5daa-40f4-a850-cc98aad5035b",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=2a6fa011-5daa-40f4-a850-cc98aad5035b",
+      "created": "追記"
+    }
   }
 }

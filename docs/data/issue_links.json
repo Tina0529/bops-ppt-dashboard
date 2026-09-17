@@ -38,5 +38,29 @@
     "date": "2026-09-16",
     "state": "open",
     "bizId": "db7dd098-7c3f-4deb-8fc8-616e2a8a00bb"
+  },
+  "2202": {
+    "issue": 242,
+    "url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-5715233039",
+    "kind": "追記",
+    "date": "2026-09-17",
+    "state": "open",
+    "bizId": "3b5ad687-1692-4879-bcd6-21e303238d67"
+  },
+  "2203": {
+    "issue": 245,
+    "url": "https://github.com/sparticleinc/gbase-knowledge/issues/245#issuecomment-5715237663",
+    "kind": "追記",
+    "date": "2026-09-17",
+    "state": "open",
+    "bizId": "bf166d23-f390-478e-953d-d0887a04201a"
+  },
+  "2205": {
+    "issue": 242,
+    "url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-5715233039",
+    "kind": "追記",
+    "date": "2026-09-17",
+    "state": "open",
+    "bizId": "3b5ad687-1692-4879-bcd6-21e303238d67"
   }
 }
