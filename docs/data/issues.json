@@ -213,15 +213,15 @@
   "西本百合香|2030年に向けたelevi": {
     "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-5715233039",
     "issue_number": 242,
-    "state": "open",
-    "last_seen": "2026-09-17",
+    "state": "resolved",
+    "last_seen": "2026-09-18",
     "lark_task": {
       "guid": "12fb3d78-3d72-495e-b608-a83ae0d4f739",
       "url": "https://applink.larksuite.com/client/todo/detail?guid=12fb3d78-3d72-495e-b608-a83ae0d4f739",
       "created": "追記"
     },
     "biz_id": "3b5ad687-1692-4879-bcd6-21e303238d67",
-    "note": "09-17 も同主題で再作成(2205)し確認門で停止。09-16 の 2200 は 27時間後に updatedAt 更新されたが plans/contents=0 のまま→5分後に 2205 を新規作成。西本様は 09-15/16/17 の3日連続"
+    "note": "2026-09-18 に 2207 で 16 頁完成し閉環（確認門 3 つ全回答）。#242 へ正対照として追記済み"
   },
   "高垣浩一|コンスーマー向けセキュリティ": {
     "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-5697589822",
@@ -261,5 +261,27 @@
       "url": "https://applink.larksuite.com/client/todo/detail?guid=2a6fa011-5daa-40f4-a850-cc98aad5035b",
       "created": "追記"
     }
+  },
+  "_issue|293": {
+    "issue_number": "293",
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/293",
+    "state": "open",
+    "lark_task": {
+      "guid": "ad1dba96-9a21-4a02-a2a2-2e880218f2af",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=ad1dba96-9a21-4a02-a2a2-2e880218f2af",
+      "created": "起票"
+    }
+  },
+  "ALL|確認カード文案品質": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/293",
+    "state": "open",
+    "last_seen": "2026-09-18",
+    "note": "確認カード選択肢の日本語誤字・中英文混入。2026-09-18 に 2207/2209/2210/2211 で確認"
+  },
+  "Derrick|当社クラウドサービスの普及": {
+    "issue_url": null,
+    "state": "not_a_failure",
+    "last_seen": "2026-09-18",
+    "note": "2209 はテンプレ(10007)がドーナツグラフ非対応のため agent が自ら確認→ユーザー同意で 10099 に切替、2210 で成功。プログラム異常ではない"
   }
 }
