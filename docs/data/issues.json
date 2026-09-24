@@ -283,5 +283,28 @@
     "state": "not_a_failure",
     "last_seen": "2026-09-18",
     "note": "2209 はテンプレ(10007)がドーナツグラフ非対応のため agent が自ら確認→ユーザー同意で 10099 に切替、2210 で成功。プログラム異常ではない"
+  },
+  "_issue|309": {
+    "issue_number": "309",
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/309",
+    "state": "open",
+    "lark_task": {
+      "guid": "aac2036f-7090-4fd5-a533-98b96214ad26",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=aac2036f-7090-4fd5-a533-98b96214ad26",
+      "created": "起票"
+    }
+  },
+  "ALL|settings重複書込み・模板覆盖": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/309",
+    "issue_number": 309,
+    "state": "open",
+    "last_seen": "2026-09-24",
+    "biz_id": "95a91974-bcfa-48d6-80f2-018b5bb60030",
+    "note": "前端轮询式重复 PUT /api/ppt/update/{bizId}/settings（2214:111/2215:53/2216:83/2217:75、計322回）＋ agent の strategyId 10025 切替が前端の旧値 10018 に 1.4 秒で上書きされる競態。2216=切替が無効化、2217=DB記録(10018)と実生成(10025)が不一致。当日 4/4 件全件命中",
+    "lark_task": {
+      "guid": "aac2036f-7090-4fd5-a533-98b96214ad26",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=aac2036f-7090-4fd5-a533-98b96214ad26",
+      "created": "起票"
+    }
   }
 }
