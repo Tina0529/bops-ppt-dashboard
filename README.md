@@ -75,6 +75,7 @@ bops-ppt-dashboard/
 ├── docs/                      ← GitHub Pages 公開対象
 │   ├── index.html             Dashboard（KPI/トレンド/会社別/シグナル、期間切替、明暗テーマ）
 │   ├── detail.html            明細ページ（当日/当週/当月、Excel 列準拠、ソート/検索）
+│   ├── transformer.html       大模型推理の図解（中国語・非エンジニア向けのインタラクティブ動画解説、単体で動作）
 │   ├── robots.txt             検索エンジン除外
 │   ├── .nojekyll
 │   └── data/                  CI が生成（dashboard.json / detail.json / trend_*.csv）

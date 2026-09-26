@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>大模型推理图解</title>
+<meta name="description" content="用 8 段可交互动画，给非技术读者讲清楚 Transformer 大模型是怎样一个词一个词生成答案的。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@700;900&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#EEF1F6; --paper:#FFFFFF; --paper-2:#F5F7FA; --ink:#111827; --ink-2:#374151; --muted:#667085;
+  --line:#DCE1EA; --line-2:#C3CAD8;
+  --vec:#3445C2; --vec-soft:#E3E6FA;
+  --att:#E08A12; --att-ink:#A85A05; --att-soft:#FCEED8;
+  --chip-s:68%; --chip-bg-l:93%; --chip-bd-l:76%; --chip-fg-l:27%; --chip-solid-l:62%;
+  --shadow:0 1px 2px rgba(17,24,39,.05),0 8px 24px rgba(17,24,39,.06);
+  --f-display:"Noto Serif SC","Source Han Serif SC","Songti SC","STSong",serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0B0F19; --paper:#141A28; --paper-2:#0F1522; --ink:#E8EBF2; --ink-2:#C4CAD7; --muted:#8B94A8;
+    --line:#232C3F; --line-2:#36425C;
+    --vec:#95A2FF; --vec-soft:#1C2245;
+    --att:#FFB04A; --att-ink:#FFBE6B; --att-soft:#36260F;
+    --chip-s:42%; --chip-bg-l:19%; --chip-bd-l:35%; --chip-fg-l:86%; --chip-solid-l:56%;
+    --shadow:0 1px 0 rgba(255,255,255,.03) inset,0 10px 28px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0B0F19; --paper:#141A28; --paper-2:#0F1522; --ink:#E8EBF2; --ink-2:#C4CAD7; --muted:#8B94A8;
+  --line:#232C3F; --line-2:#36425C;
+  --vec:#95A2FF; --vec-soft:#1C2245;
+  --att:#FFB04A; --att-ink:#FFBE6B; --att-soft:#36260F;
+  --chip-s:42%; --chip-bg-l:19%; --chip-bd-l:35%; --chip-fg-l:86%; --chip-solid-l:56%;
+  --shadow:0 1px 0 rgba(255,255,255,.03) inset,0 10px 28px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.28;color:var(--ink)}
+p{margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--vec);outline-offset:2px;border-radius:4px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.wrap{max-width:1040px;margin:0 auto;padding-inline:20px}
+.prose{max-width:680px;display:grid;gap:12px;color:var(--ink-2)}
+.prose b{color:var(--ink);font-weight:700}
+.prose ul{margin:0;padding-left:1.2em;display:grid;gap:4px}
+
+/* ---------- hero ---------- */
+.hero{padding-block:52px 36px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:44px;align-items:center}
+.eyebrow{font-size:13px;letter-spacing:.14em;color:var(--muted);font-weight:500;margin-bottom:16px}
+.hero h1{font-size:clamp(30px,4.4vw,48px);font-weight:900;letter-spacing:.01em}
+.hero h1 em{font-style:normal;color:var(--att-ink)}
+.lede{margin-top:18px;font-size:17px;color:var(--ink-2);max-width:32em}
+.lede b{color:var(--ink)}
+.hero-meta{margin-top:20px;display:flex;flex-wrap:wrap;gap:6px 10px;font-size:13px;color:var(--muted)}
+.hero-meta span{padding:2px 10px;border:1px solid var(--line-2);border-radius:999px}
+@media (max-width:860px){.hero-grid{grid-template-columns:1fr;gap:28px}.hero{padding-block:36px 28px}}
+
+/* ---------- toc ---------- */
+.toc{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:saturate(1.4) blur(10px);backdrop-filter:saturate(1.4) blur(10px);border-block:1px solid var(--line)}
+.toc-in{max-width:1040px;margin:0 auto;padding:8px 20px;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.toc-in::-webkit-scrollbar{display:none}
+.toc a{flex:0 0 auto;display:flex;align-items:center;gap:7px;padding:4px 12px 4px 5px;border-radius:999px;color:var(--muted);text-decoration:none;font-size:14px;white-space:nowrap;border:1px solid transparent;transition:color .2s,background .2s}
+.toc a .n{font-family:var(--f-mono);font-size:11px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:var(--paper);border:1px solid var(--line-2)}
+.toc a:hover{color:var(--ink)}
+.toc a.on{color:var(--ink);background:var(--paper);border-color:var(--line)}
+.toc a.on .n{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+/* ---------- chapters ---------- */
+.ch{padding-block:64px 4px;scroll-margin-top:52px}
+.ch-head{display:grid;gap:10px;margin-bottom:22px;max-width:760px}
+.ch-step{font-family:var(--f-mono);font-size:12.5px;color:var(--muted);letter-spacing:.04em}
+.ch-step b{color:var(--att-ink);font-weight:600}
+.ch h2{font-size:clamp(25px,3.2vw,34px);font-weight:900}
+.ch h3{font-size:clamp(20px,2.4vw,24px);font-weight:700;margin-top:18px}
+.ch-one{font-size:17.5px;color:var(--ink);font-weight:500}
+.ch-body{display:grid;gap:22px}
+.stage{margin:0;background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:20px;position:relative;min-width:0}
+.stage-title{font-size:13px;color:var(--muted);letter-spacing:.06em;margin-bottom:16px;display:flex;justify-content:space-between;gap:6px 14px;flex-wrap:wrap}
+.stage-title b{color:var(--ink);font-weight:600;letter-spacing:.02em}
+.stage-bar{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin-top:18px}
+.stage-hint{font-size:13px;color:var(--muted)}
+.stage-note{font-size:13px;color:var(--muted);margin-top:14px;line-height:1.7}
+.btn{border:1px solid var(--line-2);background:var(--paper-2);border-radius:999px;padding:5px 15px;font-size:14px;cursor:pointer;line-height:1.5;transition:background .15s,border-color .15s}
+.btn:hover{border-color:var(--ink-2)}
+.btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn.primary:hover{opacity:.9}
+.seg{display:inline-flex;flex-wrap:wrap;gap:3px;padding:3px;border-radius:12px;background:var(--paper-2);border:1px solid var(--line)}
+.seg button{border:0;background:transparent;padding:4px 12px;border-radius:9px;font-size:14px;cursor:pointer;color:var(--muted);line-height:1.6}
+.seg button[aria-pressed="true"]{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.14);font-weight:500}
+.ctl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:16px}
+.ctl-lab{font-size:13px;color:var(--muted);margin-right:6px}
+.analogy{display:flex;gap:14px;align-items:flex-start;padding:15px 18px;border-radius:14px;background:var(--vec-soft);color:var(--ink);max-width:760px;font-size:15.5px}
+.analogy .tag{flex:0 0 auto;font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--vec);padding-top:3px}
+@media (max-width:560px){.stage{padding:16px 14px}.analogy{flex-direction:column;gap:4px}}
+
+/* ---------- shared: chips, bars, strips ---------- */
+.tok{--h:212;display:inline-flex;align-items:center;justify-content:center;padding:4px 10px;border-radius:8px;font-weight:500;line-height:1.35;white-space:nowrap;
+  background:hsl(var(--h) var(--chip-s) var(--chip-bg-l));border:1px solid hsl(var(--h) var(--chip-s) var(--chip-bd-l));color:hsl(var(--h) var(--chip-s) var(--chip-fg-l))}
+.tok.punct{background:var(--paper-2);border-color:var(--line-2);color:var(--muted)}
+.bars{display:grid;gap:7px}
+.bar-row{display:grid;grid-template-columns:5em minmax(0,1fr) 3.2em;gap:10px;align-items:center;font-size:15px;border-radius:6px;transition:background .2s}
+.bar-lab{text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{height:14px;border-radius:4px;background:var(--paper-2);border:1px solid var(--line);overflow:hidden}
+.bar-fill{display:block;height:100%;width:0;background:var(--vec);border-radius:3px;transition:width .6s cubic-bezier(.3,.7,.2,1),background .2s}
+.bar-val{font-size:13px;color:var(--muted);text-align:right}
+.bar-row.pick .bar-fill{background:var(--att)}
+.bar-row.pick .bar-lab{color:var(--att-ink);font-weight:700}
+.strip{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:1px;height:12px;border-radius:3px;overflow:hidden;min-width:48px}
+.strip i{display:block;transition:background .5s}
+.caret{display:inline-block;width:2px;height:1.05em;background:var(--att);vertical-align:-.12em;margin-left:3px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.pop{animation:pop .45s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{from{transform:scale(.4);opacity:0}}
+.fly{position:fixed;left:0;top:0;z-index:60;pointer-events:none;padding:3px 10px;border-radius:8px;background:var(--att);color:#241400;font-weight:700;font-family:var(--f-display);box-shadow:0 8px 20px rgba(0,0,0,.22);white-space:nowrap}
+
+/* ---------- hero demo ---------- */
+.hd-sent{font-family:var(--f-display);font-weight:700;font-size:clamp(21px,2.5vw,26px);line-height:1.6;min-height:3.3em}
+.hd-gen span{color:var(--att-ink)}
+.hd-status{font-size:13.5px;color:var(--muted);margin-block:12px 12px;min-height:3em}
+.hd-status b{color:var(--ink);font-weight:600}
+.hd-status .hl{color:var(--att-ink)}
+
+/* ---------- c1 tokenizer ---------- */
+.tk-in{display:flex;gap:8px;flex-wrap:wrap}
+.tk-in input{flex:1 1 220px;min-width:0;font:inherit;font-size:17px;padding:8px 14px;border-radius:10px;border:1px solid var(--line-2);background:var(--paper-2);color:var(--ink)}
+.tk-presets{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px;font-size:13px;color:var(--muted)}
+.tk-presets button{border:1px dashed var(--line-2);background:transparent;border-radius:999px;padding:2px 10px;font-size:13px;cursor:pointer;color:var(--ink-2)}
+.tk-stage{position:relative;margin-top:22px;padding-block:8px;overflow:hidden}
+.tk-row{display:flex;flex-wrap:wrap;align-items:flex-start;row-gap:12px;min-height:66px;font-family:var(--f-display);font-weight:700;font-size:24px}
+.tk{--h:212;display:inline-flex;flex-direction:column;align-items:center;margin-inline:4px;padding:3px 10px 4px;border-radius:9px;line-height:1.35;border:1px solid hsl(var(--h) var(--chip-s) var(--chip-bd-l));background:hsl(var(--h) var(--chip-s) var(--chip-bg-l));color:hsl(var(--h) var(--chip-s) var(--chip-fg-l));transition:margin .35s,padding .35s,background-color .35s,border-color .35s,color .35s}
+.tk.joined{margin-inline:0;padding-inline:0;background:transparent;border-color:transparent;color:var(--ink)}
+.tk-id{font-family:var(--f-mono);font-size:11px;font-weight:400;opacity:0;transform:translateY(-4px);transition:opacity .3s,transform .3s}
+.tk.show-id .tk-id{opacity:.9;transform:none}
+.knife{position:absolute;top:0;bottom:0;width:2px;left:0;background:var(--att);opacity:0;box-shadow:0 0 12px var(--att)}
+.knife.go{animation:knife .65s ease-in-out}
+@keyframes knife{0%{left:0;opacity:1}90%{opacity:1}100%{left:100%;opacity:0}}
+.tk-out{margin-top:14px;display:grid;gap:4px;font-size:13.5px;color:var(--muted)}
+.tk-out .mono{color:var(--vec);word-break:break-all}
+
+/* ---------- c2 embedding ---------- */
+.emb-svg{width:100%;height:auto;display:block;border-radius:12px;border:1px solid var(--line);background:radial-gradient(circle at 1px 1px,var(--line-2) 1px,transparent 1.4px) 0 0/22px 22px,var(--paper-2)}
+.emb-svg .pt{cursor:pointer;outline:none}
+.emb-svg .pt circle{stroke:var(--paper);stroke-width:2;transition:r .2s}
+.emb-svg .pt text{font-size:15px;fill:var(--ink);font-family:var(--f-body);font-weight:500;pointer-events:none}
+.emb-svg .pt:hover circle,.emb-svg .pt:focus-visible circle{r:8.5}
+.emb-svg .pt.sel circle{stroke:var(--ink);stroke-width:2.5;r:8.5}
+.emb-svg .pt.sel text{font-weight:700}
+.emb-svg .pt.pulse circle{animation:ptpulse 1s ease 2}
+@keyframes ptpulse{50%{r:14}}
+.emb-svg .cl{font-size:12px;fill:var(--muted);letter-spacing:.2em;font-family:var(--f-body)}
+.emb-svg .an-line{stroke-width:2.5;stroke-dasharray:7 5;fill:none}
+.emb-prog{font-size:13px;color:var(--muted);min-height:1.6em;margin-top:10px}
+.emb-slots{display:grid;gap:10px;margin-top:14px}
+.emb-slot{display:grid;grid-template-columns:auto auto 5.2em auto minmax(0,1fr);gap:10px;align-items:center;font-size:14px}
+.emb-slot .ab{font-family:var(--f-mono);font-size:11px;color:var(--muted);width:1.4em}
+.emb-slot .strip{height:16px}
+.emb-slot .id{color:var(--muted);font-size:12.5px}
+.emb-sim{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font-size:14px;padding-top:6px;border-top:1px dashed var(--line-2)}
+.emb-meter{flex:1 1 140px;max-width:260px;height:10px;border-radius:5px;background:var(--paper-2);border:1px solid var(--line);overflow:hidden}
+.emb-meter i{display:block;height:100%;background:var(--vec);transition:width .5s}
+.emb-res{font-size:14px;color:var(--ink);min-height:1.6em;margin-top:8px}
+.emb-res b{color:var(--att-ink)}
+@media (max-width:560px){.emb-svg .pt text{font-size:27px}.emb-svg .cl{font-size:21px}.emb-slot{grid-template-columns:auto auto minmax(0,1fr)}.emb-slot .id,.emb-slot .arr{display:none}}
+
+/* ---------- c3 position ---------- */
+.pos-grid{display:grid;gap:18px}
+.pos-line{display:grid;grid-template-columns:7.5em minmax(0,1fr);gap:12px;align-items:center}
+.pos-line .lab{font-size:13px;color:var(--muted);line-height:1.5}
+.pos-line .lab b{display:block;color:var(--ink);font-size:15px}
+.pos-row{display:flex;gap:10px;flex-wrap:wrap}
+.pos-cell{display:grid;gap:6px;width:92px;padding:6px;border-radius:10px;border:1.5px solid transparent;transition:border-color .3s}
+.pos-cell.cmp{border-color:var(--att)}
+.pos-tw{display:flex;align-items:center;gap:6px}
+.pos-tw .tok{font-size:20px;font-family:var(--f-display);font-weight:700;padding:2px 12px}
+.stamp{font-size:15px;color:var(--att-ink);font-weight:600;opacity:0;transform:scale(2.2) rotate(-20deg);transition:opacity .35s,transform .35s cubic-bezier(.3,1.5,.5,1)}
+.withpos .stamp{opacity:1;transform:none}
+.pos-cell .strip{height:14px}
+.pos-verdict{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 18px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--paper-2);border:1px solid var(--line);font-size:14.5px}
+.pos-verdict .sign{font-weight:700;font-size:15px}
+.pos-verdict .eq{color:#C2410C}
+.pos-verdict .neq{color:var(--vec)}
+@media (max-width:560px){.pos-line{grid-template-columns:1fr;gap:6px}.pos-cell{width:84px}}
+
+/* ---------- c4 attention ---------- */
+.att-scroll{overflow-x:auto;padding-bottom:6px;margin-inline:-4px;padding-inline:4px}
+.att-inner{position:relative;display:flex;gap:6px;padding-top:62px;width:max-content;margin-inline:auto}
+.att-svg{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
+.att-svg .arc{fill:none;stroke:var(--att);stroke-linecap:round}
+.att-tok{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:5px;border:0;background:none;padding:0;cursor:pointer}
+.att-tok .tok{font-size:16px;padding:5px 9px;transition:background .4s,opacity .3s,color .3s}
+.att-tok .w{font-size:11px;color:var(--muted);min-height:1.4em;white-space:nowrap}
+.att-tok.sel .tok{outline:2.5px solid var(--ink);outline-offset:2px}
+.att-tok.sel .w{color:var(--ink);font-weight:600}
+.att-tok.hot .tok{color:#231300;border-color:var(--att)}
+.att-tok.future .tok{opacity:.32;border-style:dashed}
+.att-tok.future .w{opacity:.6}
+.att-swipe{display:none;font-size:12px;color:var(--muted);text-align:right;margin-top:2px}
+@media (max-width:760px){.att-swipe{display:block}}
+.att-cap{margin-top:10px;font-size:15px;min-height:1.7em}
+.att-cap b{color:var(--att-ink)}
+.att-headnote{font-size:13px;color:var(--muted);margin-top:4px}
+.att-pred{margin-top:18px;padding-top:16px;border-top:1px dashed var(--line-2);display:grid;grid-template-columns:minmax(0,15em) minmax(0,1fr);gap:10px 22px;align-items:start}
+.att-pred .t{font-size:14px;color:var(--ink-2)}
+.att-pred .t b{color:var(--ink)}
+@media (max-width:640px){.att-pred{grid-template-columns:1fr}}
+
+.qkv-steps{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.qkv-steps button{border:1px solid var(--line-2);background:var(--paper-2);border-radius:999px;padding:3px 12px;font-size:13.5px;cursor:pointer;color:var(--muted)}
+.qkv-steps button[aria-current="step"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.qk-q{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--att-soft);margin-bottom:14px}
+.qk-q .tok{font-size:17px;font-family:var(--f-display);font-weight:700}
+.qk-q .card{font-size:14.5px;color:var(--ink)}
+.qk-q .card b{color:var(--att-ink)}
+.qk-list{display:grid;gap:6px}
+.qk-row{display:grid;grid-template-columns:4.6em minmax(0,1fr) minmax(0,1.1fr) 3.6em;gap:10px;align-items:center;font-size:14px;padding:3px 0}
+.qk-row .tok{font-size:14.5px;padding:3px 8px}
+.qk-key{color:var(--ink-2);font-size:13.5px;opacity:0;transform:translateX(-6px);transition:opacity .4s,transform .4s}
+.qk-key .k{font-family:var(--f-mono);font-size:11px;color:var(--vec);margin-right:5px}
+.qk-bar{height:12px;border-radius:4px;background:var(--paper-2);border:1px solid var(--line);overflow:hidden}
+.qk-bar i{display:block;height:100%;width:0;background:var(--vec);transition:width .6s cubic-bezier(.3,.7,.2,1),background .3s}
+.qk-num{text-align:right;font-size:12.5px;color:var(--muted)}
+.s2 .qk-key{opacity:1;transform:none}
+.s3 .qk-bar i{background:var(--att)}
+.qk-mix{margin-top:16px;opacity:.25;transition:opacity .4s}
+.s4 .qk-mix{opacity:1}
+.qk-mix-lab{font-size:13px;color:var(--muted);margin-bottom:6px}
+.qk-mix-bar{display:flex;height:22px;border-radius:6px;overflow:hidden;border:1px solid var(--line);background:var(--paper-2)}
+.qk-mix-bar i{display:block;height:100%;width:0;transition:width .7s cubic-bezier(.3,.7,.2,1)}
+.qk-mix-leg{font-size:13.5px;margin-top:6px;color:var(--ink-2)}
+.qk-cap{margin-top:14px;font-size:15px;min-height:3.4em;color:var(--ink)}
+@media (max-width:560px){.qk-row{grid-template-columns:4.4em minmax(0,1fr) 3.4em;grid-template-areas:"t k k" "t b n"}.qk-row .tok{grid-area:t}.qk-key{grid-area:k}.qk-bar{grid-area:b}.qk-num{grid-area:n}}
+
+/* ---------- c5 ffn ---------- */
+.ffn-svg{width:100%;height:auto;display:block}
+.ffn-svg .cap{font-size:13px;fill:var(--muted);font-family:var(--f-body);text-anchor:middle}
+.ffn-svg .wire{stroke:var(--line-2);stroke-width:.6;opacity:.35;fill:none}
+.ffn-svg .hot{stroke:var(--att);stroke-width:1.1;opacity:.5;fill:none;stroke-dasharray:1;stroke-dashoffset:1;animation:draw .6s ease forwards}
+.ffn-svg .hot.done{animation:none;stroke-dashoffset:0}
+@keyframes draw{to{stroke-dashoffset:0}}
+.ffn-svg .nr{fill:var(--paper-2);stroke:var(--line-2);stroke-width:1.5;transition:fill .35s,stroke .35s}
+.ffn-svg .nr.on{fill:var(--att);stroke:var(--att-ink);filter:drop-shadow(0 0 5px var(--att))}
+.ffn-svg .nl{font-size:11px;font-family:var(--f-mono);fill:#241400;text-anchor:middle;dominant-baseline:central;opacity:0;transition:opacity .3s}
+.ffn-svg .nl.on{opacity:1}
+.ffn-svg .cell{stroke:var(--line-2);stroke-width:1;transition:fill .4s}
+.ffn-q{font-family:var(--f-display);font-weight:700;font-size:20px;margin-bottom:6px}
+.ffn-q .blank{display:inline-block;min-width:2.4em;border-bottom:2px solid var(--att);text-align:center;color:var(--att-ink)}
+.ffn-leg{font-size:14px;color:var(--ink-2);margin-top:8px;min-height:1.7em}
+.ffn-leg .n{font-family:var(--f-mono);color:var(--att-ink);font-weight:600}
+.ffn-res{font-size:15px;margin-top:4px;min-height:1.7em;opacity:0;transition:opacity .4s}
+.ffn-res.on{opacity:1}
+.ffn-res b{color:var(--att-ink)}
+
+/* ---------- c6 tower ---------- */
+.tw{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:26px;align-items:start}
+.tw-grid{display:grid;gap:4px}
+.tw-row{display:grid;grid-template-columns:4.4em repeat(7,minmax(0,1fr));gap:5px;align-items:center;border-radius:8px;padding:3px 5px;transition:background .3s}
+.tw-row.active{background:var(--att-soft)}
+.tw-lab{font-size:12px;color:var(--muted);white-space:nowrap}
+.tw-c{height:20px;border-radius:5px;border:1px solid transparent;transition:opacity .35s}
+.tw-c.empty{background:transparent!important;border:1px dashed var(--line-2)}
+.tw-toks .tok{font-size:12.5px;padding:2px 0;width:100%;border-radius:6px}
+.tw-dots{text-align:center;color:var(--muted);font-size:12px;letter-spacing:.2em;padding-block:2px}
+.tw-out{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:8px 10px;border-radius:10px;border:1px dashed var(--att);font-size:14px;margin-bottom:6px;transition:opacity .4s}
+.tw-out.off{opacity:.25}
+.tw-out b{color:var(--att-ink)}
+.tw-caps{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.tw-caps li{font-size:14px;color:var(--muted);padding:6px 10px;border-radius:8px;line-height:1.6;transition:background .3s,color .3s}
+.tw-caps li b{color:var(--ink-2);font-weight:600;margin-right:6px;font-family:var(--f-mono);font-size:12px}
+.tw-caps li.on{background:var(--att-soft);color:var(--ink)}
+@media (max-width:820px){.tw{grid-template-columns:1fr}}
+
+/* ---------- c7 sampling ---------- */
+.sp-top{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sp-prompt{font-family:var(--f-display);font-weight:700;font-size:20px}
+.sp-prompt .blank{display:inline-block;min-width:2.8em;border-bottom:2px solid var(--att);text-align:center;color:var(--att-ink)}
+.sp-temp{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap}
+.sp-temp label{font-size:14px}
+.sp-temp input[type=range]{accent-color:var(--att);width:170px;max-width:100%}
+.sp-tval{font-size:15px;font-weight:600;min-width:2.6em}
+.sp-desc{font-size:13.5px;color:var(--muted);margin:-6px 0 12px}
+.sp-rows{display:grid;gap:4px}
+.sp-row{display:grid;grid-template-columns:4.4em 3.2em minmax(0,1fr) 3.8em 2.6em;gap:10px;align-items:center;padding:3px 8px;border-radius:8px;font-size:14.5px;transition:background .1s}
+.sp-row .bar-track{height:14px}
+.sp-row .lg{font-size:12.5px;color:var(--muted);text-align:right}
+.sp-row .pc{font-size:13px;text-align:right}
+.sp-row .ct{font-size:12.5px;color:var(--att-ink);font-weight:600}
+.sp-row.hi{background:var(--att-soft)}
+.sp-row.win{background:var(--att-soft);box-shadow:inset 0 0 0 1.5px var(--att)}
+.sp-row.win .bar-fill{background:var(--att)}
+.sp-head{font-size:12px;color:var(--muted);padding-block:0}
+.sp-res{font-size:15px;min-height:1.7em}
+.sp-res b{color:var(--att-ink);font-family:var(--f-display);font-size:18px}
+@media (max-width:560px){.sp-row{grid-template-columns:3.8em 2.6em minmax(0,1fr) 3.4em 2.2em;gap:6px;padding-inline:4px}}
+
+/* ---------- c8 loop ---------- */
+.lp{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px;align-items:start}
+.lp-seq{display:flex;flex-wrap:wrap;gap:8px 6px;min-height:52px;align-items:flex-start}
+.lp-tok{display:flex;flex-direction:column;align-items:center;gap:3px}
+.lp-tok .tok{font-size:17px;font-family:var(--f-display);font-weight:700;padding:3px 10px;transition:box-shadow .3s}
+.lp-tok .kv{font-size:10px;padding:0 5px;border-radius:4px;border:1px solid var(--line-2);color:var(--muted);opacity:0;transition:opacity .3s}
+.lp-tok.cached .kv{opacity:1}
+.lp-tok.calc .tok{box-shadow:0 0 0 2.5px var(--att)}
+.lp-tok.calc .kv{opacity:0}
+.lp-flow{display:flex;align-items:center;gap:12px;margin-top:18px;flex-wrap:wrap}
+.lp-machine{flex:1 1 200px;padding:14px 16px;border-radius:12px;border:1.5px solid var(--line-2);background:var(--paper-2);transition:border-color .3s,box-shadow .3s}
+.lp-machine b{display:block;font-family:var(--f-display);font-size:17px}
+.lp-machine span{font-size:13px;color:var(--muted)}
+.lp-machine.busy{border-color:var(--att);box-shadow:0 0 0 4px var(--att-soft)}
+.lp-machine .gear{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--line-2);margin-right:6px;vertical-align:1px}
+.lp-machine.busy .gear{background:var(--att);animation:blink .5s steps(1) infinite}
+.lp-arrow{font-size:20px;color:var(--muted)}
+.lp-out{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:6em}
+.lp-out-lab{font-size:12px;color:var(--muted)}
+.lp-slot{min-height:36px;display:flex;align-items:center}
+.lp-slot .tok{font-size:17px;font-family:var(--f-display);font-weight:700}
+.lp-stats{font-size:13px;color:var(--muted);margin-top:16px}
+.lp-stats b{color:var(--ink)}
+.lp-cap{font-size:14.5px;margin-top:6px;min-height:3.2em}
+.chat{display:grid;gap:10px;align-content:start}
+.chat-b{padding:10px 14px;border-radius:14px;font-size:16px;max-width:92%}
+.chat-b .who{display:block;font-size:11.5px;color:var(--muted);letter-spacing:.08em;margin-bottom:2px}
+.chat-q{justify-self:end;background:var(--vec-soft)}
+.chat-a{justify-self:start;min-width:9em;background:var(--paper-2);border:1px solid var(--line)}
+.chat-a .txt{font-family:var(--f-display);font-weight:700}
+@media (max-width:760px){.lp{grid-template-columns:1fr}}
+
+/* ---------- summary ---------- */
+.pipe{display:flex;flex-wrap:wrap;gap:10px 4px;align-items:stretch}
+.pn{flex:1 1 auto;display:flex;flex-direction:column;gap:2px;padding:9px 10px;border-radius:12px;border:1px solid var(--line);background:var(--paper-2);text-decoration:none;color:var(--ink);min-width:5em;transition:background .25s,border-color .25s,transform .25s}
+.pn small{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.pn span{font-weight:700;font-size:15px}
+.pn em{font-style:normal;font-size:12.5px;color:var(--muted)}
+.pn.on{background:var(--att-soft);border-color:var(--att);transform:translateY(-2px)}
+.pa{align-self:center;color:var(--muted);font-size:14px}
+.pg{flex:2 1 auto;display:flex;gap:6px;align-items:stretch;padding:8px;border-radius:14px;border:1.5px dashed var(--vec);position:relative;padding-top:24px}
+.pg-lab{position:absolute;top:4px;left:10px;font-size:11.5px;color:var(--vec);font-weight:600;letter-spacing:.04em}
+.faq{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.faq div{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.faq h4{margin:0 0 6px;font-size:16px;font-family:var(--f-body);font-weight:700}
+.faq p{font-size:14.5px;color:var(--ink-2)}
+@media (max-width:720px){.faq{grid-template-columns:1fr}}
+.gl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+.gl{border-collapse:collapse;width:100%;min-width:560px;font-size:14.5px}
+.gl th,.gl td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+.gl th{font-size:12.5px;color:var(--muted);font-weight:500;letter-spacing:.06em;background:var(--paper-2)}
+.gl tr:last-child td{border-bottom:0}
+.gl td:first-child{font-weight:700;white-space:nowrap}
+.gl td:nth-child(2){font-family:var(--f-mono);font-size:12.5px;color:var(--vec);white-space:nowrap}
+.foot{padding-block:40px 56px;font-size:13px;color:var(--muted);max-width:760px}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">写给非技术同学的 Transformer 图解</div>
+      <h1>大模型是怎样一个词一个词<em>「想」</em>出答案的</h1>
+      <p class="lede">ChatGPT、Claude、DeepSeek、通义千问……这些大模型的内部，几乎都是同一种结构：<b>Transformer</b>。它回答你的时候，其实一直在重复做同一件事：<b>看着前面的文字，猜下一个词。</b></p>
+      <p class="lede">这里有一台正在运转的「猜词机」。往下看，8 段可以点、可以玩的动画会把它一步步拆开。</p>
+      <div class="hero-meta"><span>阅读约 12 分钟</span><span>不需要数学基础</span><span>每段动画都能点</span></div>
+    </div>
+    <figure class="stage" id="hero-demo" aria-label="猜词机演示">
+      <div class="stage-title"><b>猜词机 · 正在运转</b><span>示意数据</span></div>
+      <p class="hd-sent"><span class="hd-prompt">今天天气很好，我们一起去</span><span class="hd-gen"><span>公园</span><span>野餐</span><span>吧</span><span>！</span></span><span class="caret"></span></p>
+      <p class="hd-status"><b>第 1 轮</b> · 读完整句，给候选词打分（只列前 5 名）</p>
+      <div class="bars">
+        <div class="bar-row pick"><span class="bar-lab">公园</span><span class="bar-track"><span class="bar-fill" style="width:38%"></span></span><span class="bar-val mono">38%</span></div>
+        <div class="bar-row"><span class="bar-lab">爬山</span><span class="bar-track"><span class="bar-fill" style="width:21%"></span></span><span class="bar-val mono">21%</span></div>
+        <div class="bar-row"><span class="bar-lab">海边</span><span class="bar-track"><span class="bar-fill" style="width:14%"></span></span><span class="bar-val mono">14%</span></div>
+        <div class="bar-row"><span class="bar-lab">郊游</span><span class="bar-track"><span class="bar-fill" style="width:11%"></span></span><span class="bar-val mono">11%</span></div>
+        <div class="bar-row"><span class="bar-lab">逛街</span><span class="bar-track"><span class="bar-fill" style="width:8%"></span></span><span class="bar-val mono">8%</span></div>
+      </div>
+      <div class="stage-bar">
+        <button class="btn" type="button" data-act="pause" aria-pressed="false">暂停</button>
+        <button class="btn" type="button" data-act="reset">从头再来</button>
+        <span class="stage-hint">黑字是你的输入，橙字是模型一个个接上去的</span>
+      </div>
+    </figure>
+  </div>
+</header>
+
+<nav class="toc" aria-label="章节导航">
+  <div class="toc-in">
+    <a href="#c1"><span class="n">1</span>切词</a>
+    <a href="#c2"><span class="n">2</span>向量</a>
+    <a href="#c3"><span class="n">3</span>位置</a>
+    <a href="#c4"><span class="n">4</span>注意力</a>
+    <a href="#c5"><span class="n">5</span>思考</a>
+    <a href="#c6"><span class="n">6</span>叠层</a>
+    <a href="#c7"><span class="n">7</span>选词</a>
+    <a href="#c8"><span class="n">8</span>循环</a>
+    <a href="#sum"><span class="n">∑</span>总览</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ 1 ============ -->
+<section class="ch" id="c1">
+  <header class="ch-head">
+    <div class="ch-step">第 <b>1</b> 步 / 共 8 步</div>
+    <h2>切词：把句子剪成一个个「词元」</h2>
+    <p class="ch-one">模型不认识字，它只认识编号。</p>
+  </header>
+  <div class="ch-body">
+    <div class="prose">
+      <p>你输入的一句话，首先会被切成一小块一小块，每一块叫做一个<b>词元</b>（token）。常用的词往往是完整的一块，少见的词会被拆成几块。</p>
+      <p>每个词元在模型的「词典」里都有一个固定编号。主流大模型的词典大约有 <b>10 万到 20 万个词元</b>。从这一刻起，模型真正处理的只是一串数字。</p>
+    </div>
+    <figure class="stage" id="tk">
+      <div class="stage-title"><b>切词机</b><span>输入任意一句话试试</span></div>
+      <form class="tk-in" id="tk-form">
+        <input id="tk-input" type="text" value="我爱吃苹果派" maxlength="30" aria-label="要切分的句子" autocomplete="off">
+        <button class="btn primary" type="submit">切一下</button>
+      </form>
+      <div class="tk-presets">试试：
+        <button type="button" data-t="我爱吃苹果派">我爱吃苹果派</button>
+        <button type="button" data-t="Transformer真厉害！">Transformer真厉害！</button>
+        <button type="button" data-t="unbelievable">unbelievable</button>
+        <button type="button" data-t="床前明月光，疑是地上霜。">床前明月光，疑是地上霜。</button>
+      </div>
+      <div class="tk-stage">
+        <div class="tk-row" aria-live="polite"></div>
+        <div class="knife"></div>
+      </div>
+      <div class="tk-out">
+        <span class="tk-stat"></span>
+        <span>模型实际读到的：<span class="mono tk-ids"></span></span>
+      </div>
+      <p class="stage-note">示意切法。真实模型的切法是从海量文本里统计出来的，每家模型略有不同；粗略地说，1 个中文词元大约对应 1～2 个汉字。</p>
+    </figure>
+    <aside class="analogy"><span class="tag">打个比方</span><p>像把一句话剪成一张张卡片，每张卡片背面印着它在词典里的编号。模型从头到尾只看卡片背面的数字。</p></aside>
+  </div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section class="ch" id="c2">
+  <header class="ch-head">
+    <div class="ch-step">第 <b>2</b> 步 / 共 8 步</div>
+    <h2>变成向量：给每个词一个「意思坐标」</h2>
+    <p class="ch-one">意思相近的词，坐标也挨得很近。</p>
+  </header>
+  <div class="ch-body">
+    <div class="prose">
+      <p>编号只是个代号：第 1234 号和第 1235 号可能毫不相干。所以模型会把每个编号换成一长串数字，叫做<b>向量</b>。在大模型里，一个向量通常有<b>几千个数字</b>。</p>
+      <p>你可以把向量想成这个词在一张「意义地图」上的坐标。这张地图不是人画的，而是模型在训练时读了海量文本，自己慢慢摆出来的：经常出现在相似语境里的词，会被摆到一起。</p>
+    </div>
+    <figure class="stage" id="emb">
+      <div class="stage-title"><b>意义地图</b><span>示意：把几千维压扁成了二维</span></div>
+      <svg class="emb-svg" viewBox="0 0 600 360" role="img" aria-label="词语在意义地图上的分布"></svg>
+      <div class="emb-prog"></div>
+      <div class="stage-bar" style="margin-top:6px">
+        <button class="btn" type="button" data-act="learn">看它从乱序中学出来</button>
+        <button class="btn primary" type="button" data-act="analogy">国王 − 男人 + 女人 = ？</button>
+        <span class="stage-hint">点任意两个词，比较它们的向量</span>
+      </div>
+      <div class="emb-res"></div>
+      <div class="emb-slots">
+        <div class="emb-slot" data-slot="0"></div>
+        <div class="emb-slot" data-slot="1"></div>
+        <div class="emb-sim"></div>
+      </div>
+      <p class="stage-note">每个色条代表向量里的一个数字（这里只画 16 个）：橙色为正、蓝色为负，颜色越深数值越大。同类词的色条长得很像。</p>
+    </figure>
+    <aside class="analogy"><span class="tag">打个比方</span><p>就像地图上的经纬度，只不过这张地图有几千个方向：有的方向大致对应「是不是动物」，有的对应「性别」，有的对应「能不能吃」……</p></aside>
+  </div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section class="ch" id="c3">
+  <header class="ch-head">
+    <div class="ch-step">第 <b>3</b> 步 / 共 8 步</div>
+    <h2>加上位置：记住谁在前、谁在后</h2>
+    <p class="ch-one">「狗咬人」和「人咬狗」，字完全一样，意思完全相反。</p>
+  </header>
+  <div class="ch-body">
+    <div class="prose">
+      <p>下一步的「注意力」会同时看所有的词，它本身分不出先后顺序。如果不做处理，这两句话在模型眼里就是同一袋词。</p>
+      <p>所以要在每个词的向量上，再叠加一组代表「排第几位」的数字，叫做<b>位置编码</b>。这样同一个字放在不同位置，向量就不一样了。</p>
+    </div>
+    <figure class="stage" id="pos">
+      <div class="ctl">
+        <div class="seg" role="group" aria-label="是否加入位置信息">
+          <button type="button" data-p="0" aria-pressed="true">不加位置</button>
+          <button type="button" data-p="1" aria-pressed="false">加上位置</button>
+        </div>
+      </div>
+      <div class="pos-grid">
+        <div class="pos-line"><div class="lab"><b>句子 A</b>狗是咬人的一方</div><div class="pos-row"></div></div>
+        <div class="pos-line"><div class="lab"><b>句子 B</b>人是咬狗的一方</div><div class="pos-row"></div></div>
+        <div class="pos-verdict"></div>
+      </div>
+      <p class="stage-note pos-note"></p>
+    </figure>
+    <aside class="analogy"><span class="tag">打个比方</span><p>像排队时每人领一张号码牌。人还是那些人，但有了号码，先来后到就清清楚楚。</p></aside>
+  </div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section class="ch" id="c4">
+  <header class="ch-head">
+    <div class="ch-step">第 <b>4</b> 步 / 共 8 步</div>
+    <h2>注意力：每个词回头看看，谁和我有关</h2>
+    <p class="ch-one">这是 Transformer 最核心的发明。提出它的论文标题就叫《Attention Is All You Need》（2017 年）。</p>
+  </header>
+  <div class="ch-body">
+    <div class="prose">
+      <p>光知道每个词自己的意思还不够。读到「递给了」时，模型得弄清楚：递给谁？答案藏在前文里。</p>
+      <p><b>注意力机制</b>让每个词给它前面的每个词打一个「相关度」分。分越高，就从那个词身上吸收越多的信息，用来更新自己的向量。</p>
+      <p>试着把「一碗面」换成「一杯水」：「递给了」的注意力会从饿了的小红，转到口渴的小明身上，下一个词的预测也跟着变了。</p>
+    </div>
+    <figure class="stage" id="att">
+      <div class="ctl">
+        <div><span class="ctl-lab">句子里是</span><div class="seg" role="group" aria-label="切换句子">
+          <button type="button" data-v="0" aria-pressed="true">一碗面</button>
+          <button type="button" data-v="1" aria-pressed="false">一杯水</button>
+        </div></div>
+        <div><span class="ctl-lab">注意力头</span><div class="seg" role="group" aria-label="切换注意力头">
+          <button type="button" data-head="mix" aria-pressed="true">综合</button>
+          <button type="button" data-head="people" aria-pressed="false">① 找人物</button>
+          <button type="button" data-head="need" aria-pressed="false">② 找需求</button>
+          <button type="button" data-head="prev" aria-pressed="false">③ 看前一个词</button>
+        </div></div>
+      </div>
+      <div class="att-scroll"><div class="att-inner"><svg class="att-svg" aria-hidden="true"></svg></div></div>
+      <p class="att-swipe">← 整句较长，可左右滑动</p>
+      <p class="att-cap"></p>
+      <p class="att-headnote"></p>
+      <div class="att-pred">
+        <p class="t">读完整句后，<b>「递给了」后面的下一个词</b>最可能是：</p>
+        <div class="bars"></div>
+      </div>
+      <p class="stage-note">点任意一个词，看它在「看」谁。线越粗，关注越多。生成文字时，每个词只能看自己和前面的词（虚线框的词它看不到），因为后面的还没写出来。示意：真实模型有几十层、每层几十个注意力头，这里简化成一张图。</p>
+    </figure>
+
+    <h3>分数是怎么打出来的？Query、Key、Value</h3>
+    <div class="prose">
+      <p>每个词都会从自己的向量里算出三样东西：</p>
+      <ul>
+        <li><b>Query（提问）</b>：我在找什么样的信息？</li>
+        <li><b>Key（标签）</b>：我身上有什么信息，供别人来匹配。</li>
+        <li><b>Value（内容）</b>：如果你关注我，我能交给你的内容。</li>
+      </ul>
+    </div>
+    <figure class="stage" id="qkv" data-step="4">
+      <div class="qkv-steps" role="group" aria-label="步骤">
+        <button type="button" data-s="1">① 提问</button>
+        <button type="button" data-s="2">② 对标签</button>
+        <button type="button" data-s="3">③ 换算成比例</button>
+        <button type="button" data-s="4">④ 按比例吸收</button>
+      </div>
+      <div class="qk-q"></div>
+      <div class="qk-list"></div>
+      <div class="qk-mix">
+        <div class="qk-mix-lab">新的「递给了」向量由这些内容混合而成：</div>
+        <div class="qk-mix-bar"></div>
+        <div class="qk-mix-leg"></div>
+      </div>
+      <p class="qk-cap"></p>
+      <div class="stage-bar">
+        <button class="btn" type="button" data-act="prev">上一步</button>
+        <button class="btn primary" type="button" data-act="next">下一步</button>
+        <button class="btn" type="button" data-act="auto" aria-pressed="true">自动播放中</button>
+        <span class="stage-hint">句子跟上面的切换同步，标点等得分很低的词已省略</span>
+      </div>
+    </figure>
+    <aside class="analogy"><span class="tag">打个比方</span><p>像在图书馆找书。Query 是你心里的问题，Key 是每本书书脊上的标签，Value 是书里的内容。拿问题去对标签，越对得上的书读得越多，最后把读到的内容融合成自己的理解。</p></aside>
+  </div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section class="ch" id="c5">
+  <header class="ch-head">
+    <div class="ch-step">第 <b>5</b> 步 / 共 8 步</div>
+    <h2>独立思考：每个词查一查自己的「记忆」</h2>
+    <p class="ch-one">注意力负责和别的词交流，前馈网络负责各自消化和联想。</p>
+  </header>
+  <div class="ch-body">
+    <div class="prose">
+      <p>交换完信息后，每个词的向量会各自经过一个很宽的神经网络，叫<b>前馈网络</b>。它里面有成千上万个「神经元」，每个都像一个开关，只对特定的模式有反应。</p>
+      <p>输入不同，亮起的开关组合就不同。研究发现，模型学到的大量事实，比如「埃菲尔铁塔在巴黎」，很大一部分就藏在这些开关之间的连接强度里。这些可以调整的数字，就是常说的<b>参数</b>；大模型的参数有几十亿到上万亿个。</p>
+    </div>
+    <figure class="stage" id="ffn">
+      <div class="ctl">
+        <div class="seg" role="group" aria-label="选择例子">
+          <button type="button" data-x="0" aria-pressed="true">埃菲尔铁塔位于</button>
+          <button type="button" data-x="1" aria-pressed="false">一加一等于</button>
+          <button type="button" data-x="2" aria-pressed="false">苹果是一种</button>
+        </div>
+      </div>
+      <p class="ffn-q"></p>
+      <svg class="ffn-svg" viewBox="0 0 640 300" role="img" aria-label="前馈网络示意：输入向量、神经元、输出向量"></svg>
+      <p class="ffn-leg"></p>
+      <p class="ffn-res"></p>
+      <p class="stage-note">示意：真实模型一个前馈层就有上万个神经元，单个神经元的含义往往也比这里更混杂。</p>
+    </figure>
+    <aside class="analogy"><span class="tag">打个比方</span><p>像开完会后，每个人回到座位上，结合刚才听到的内容，翻一翻自己脑子里的知识，把想法补充完整。</p></aside>
+  </div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section class="ch" id="c6">
+  <header class="ch-head">
+    <div class="ch-step">第 <b>6</b> 步 / 共 8 步</div>
+    <h2>一层又一层：反复「交流 + 思考」</h2>
+    <p class="ch-one">注意力 + 前馈网络 = 一层。大模型会把几十层甚至上百层叠在一起。</p>
+  </header>
+  <div class="ch-body">
+    <div class="prose">
+      <p>每一层都不会推倒重来，而是在同一份「草稿」上补充批注（专业叫法是<b>残差连接</b>）。所以越往上，每个词的向量里装进的上下文就越多。</p>
+      <p>研究者观察到一个大致规律：靠下的层更多处理字词和语法，靠上的层更多处理语义和推理。到了最后一层，<b>最末尾那个词的向量</b>已经浓缩了「接下来该说什么」的线索。</p>
+    </div>
+    <figure class="stage" id="tower">
+      <div class="stage-title"><b>从下往上，逐层加工</b><span>每个格子里的色条 = 它吸收了哪些词的信息</span></div>
+      <div class="tw">
+        <div>
+          <div class="tw-out"><span>最后一个词「去」→ 下一个词：</span><b>公园 38%</b><span>爬山 21%</span><span>海边 14%</span></div>
+          <div class="tw-grid"></div>
+        </div>
+        <ol class="tw-caps"></ol>
+      </div>
+      <div class="stage-bar"><button class="btn" type="button" data-act="replay">从第 1 层重新播放</button><span class="stage-hint">各层的「理解」是示意，帮助建立直觉</span></div>
+    </figure>
+    <aside class="analogy"><span class="tag">打个比方</span><p>像一份文件在几十个部门之间传阅，每个部门都在上面加批注。传到最后，文件上的信息已经非常丰富。</p></aside>
+  </div>
+</section>
+
+<!-- ============ 7 ============ -->
+<section class="ch" id="c7">
+  <header class="ch-head">
+    <div class="ch-step">第 <b>7</b> 步 / 共 8 步</div>
+    <h2>打分和抽签：选出下一个词</h2>
+    <p class="ch-one">模型给词典里的每个词打分，再按概率抽一个。</p>
+  </header>
+  <div class="ch-body">
+    <div class="prose">
+      <p>最后一层输出后，最末尾那个位置的向量会和词典里的<b>每一个词元</b>比一比，得到一个分数（logits）。分数再用 <b>softmax</b> 换算成概率，所有概率加起来正好是 100%。</p>
+      <p>接着按概率「抽签」。<b>温度</b>是控制抽签的旋钮：温度低，几乎总选第一名，回答稳定但死板；温度高，冷门词也有机会，更有创意，也更容易跑偏。</p>
+      <p>这也解释了为什么同一个问题问两次，答案往往不一样：每一步都在抽签。</p>
+    </div>
+    <figure class="stage" id="samp">
+      <div class="sp-top">
+        <p class="sp-prompt">今天天气很好，我们一起去<span class="blank">？</span></p>
+        <div class="sp-temp">
+          <label for="temp">温度</label>
+          <input id="temp" type="range" min="0.1" max="2" step="0.05" value="1">
+          <span class="sp-tval mono">1.00</span>
+          <div class="seg" role="group" aria-label="温度预设">
+            <button type="button" data-t="0.2" aria-pressed="false">稳重 0.2</button>
+            <button type="button" data-t="1" aria-pressed="true">默认 1.0</button>
+            <button type="button" data-t="1.8" aria-pressed="false">放飞 1.8</button>
+          </div>
+        </div>
+      </div>
+      <p class="sp-desc"></p>
+      <div class="sp-rows">
+        <div class="sp-row sp-head"><span>候选词</span><span style="text-align:right">分数</span><span>概率</span><span></span><span>抽中</span></div>
+      </div>
+      <div class="stage-bar">
+        <button class="btn primary" type="button" data-act="one">抽一次</button>
+        <button class="btn" type="button" data-act="many">连抽 20 次</button>
+        <button class="btn" type="button" data-act="clear">清空记录</button>
+        <span class="sp-res" aria-live="polite"></span>
+      </div>
+      <p class="stage-note">真实的候选有 10 万个以上，这里只列 9 个。拖动温度，看概率条怎么变：温度越低，第一名越「独大」。</p>
+    </figure>
+    <aside class="analogy"><span class="tag">打个比方</span><p>像从袋子里摸彩球：某个词的球越多，越容易被摸到。调高温度，就像把袋子里各种颜色的球数变得更平均。</p></aside>
+  </div>
+</section>
+
+<!-- ============ 8 ============ -->
+<section class="ch" id="c8">
+  <header class="ch-head">
+    <div class="ch-step">第 <b>8</b> 步 / 共 8 步</div>
+    <h2>接回去，再来一遍</h2>
+    <p class="ch-one">你看到的「打字机效果」，就是模型在一轮一轮地生成。</p>
+  </header>
+  <div class="ch-body">
+    <div class="prose">
+      <p>抽出的词会被接到句子末尾，然后整个流程再跑一遍，猜下一个词，直到抽中一个特殊的「结束」标记。这种方式叫<b>自回归生成</b>。</p>
+      <p>为了不重复劳动，前面每个词已经算好的 Key 和 Value 会被存起来，叫做 <b>KV 缓存</b>。第一轮要把整个提示词读一遍，之后每一轮只需要为新出现的那一个词做计算。这也是为什么对话越长，占用的显存越多。</p>
+    </div>
+    <figure class="stage" id="loop">
+      <div class="lp">
+        <div>
+          <div class="lp-seq"></div>
+          <div class="lp-flow">
+            <div class="lp-machine"><b><span class="gear"></span>Transformer</b><span>几十层 · 注意力 + 前馈 → 打分 → 抽签</span></div>
+            <span class="lp-arrow">→</span>
+            <div class="lp-out"><span class="lp-out-lab">新词元</span><span class="lp-slot"></span></div>
+          </div>
+          <p class="lp-stats mono"></p>
+          <p class="lp-cap"></p>
+        </div>
+        <div class="chat" aria-label="对话界面示意">
+          <div class="chat-b chat-q"><span class="who">你</span>床前明月光，</div>
+          <div class="chat-b chat-a"><span class="who">模型</span><span class="txt">疑是地上霜。</span><span class="caret"></span></div>
+        </div>
+      </div>
+      <div class="stage-bar"><button class="btn" type="button" data-act="replay">重新播放</button><span class="stage-hint">橙色描边 = 本轮要计算的词；带 KV 标记 = 已缓存，直接复用</span></div>
+    </figure>
+    <aside class="analogy"><span class="tag">打个比方</span><p>像玩词语接龙，只不过每次只接一个词，而且每接一次都要把前面整句话在脑子里过一遍。KV 缓存就是一本备忘录，记下已经想过的部分。</p></aside>
+  </div>
+</section>
+
+<!-- ============ summary ============ -->
+<section class="ch" id="sum">
+  <header class="ch-head">
+    <div class="ch-step">总览</div>
+    <h2>一张图回顾全程</h2>
+    <p class="ch-one">从你按下回车，到屏幕上出现一个新词，发生的就是这些。</p>
+  </header>
+  <div class="ch-body">
+    <figure class="stage" id="pipe">
+      <div class="pipe">
+        <a class="pn" href="#hero-demo"><small>输入</small><span>一句话</span><em>你的问题</em></a><span class="pa">→</span>
+        <a class="pn" href="#c1"><small>1</small><span>切词</span><em>变成词元编号</em></a><span class="pa">→</span>
+        <a class="pn" href="#c2"><small>2 · 3</small><span>向量 + 位置</span><em>意思和顺序</em></a><span class="pa">→</span>
+        <div class="pg"><span class="pg-lab">重复几十层</span>
+          <a class="pn" href="#c4" data-loop="a"><small>4</small><span>注意力</span><em>词和词交流</em></a>
+          <a class="pn" href="#c5"><small>5</small><span>前馈网络</span><em>各自思考</em></a>
+        </div><span class="pa">→</span>
+        <a class="pn" href="#c7"><small>7</small><span>打分</span><em>10 万+ 候选</em></a><span class="pa">→</span>
+        <a class="pn" href="#c7"><small>7</small><span>抽签</span><em>温度控制</em></a><span class="pa">→</span>
+        <a class="pn" href="#c8"><small>8</small><span>新词</span><em>接回句尾</em></a>
+      </div>
+    </figure>
+
+    <h3>几个常见疑问</h3>
+    <div class="faq">
+      <div><h4>训练和推理有什么区别？</h4><p>训练是「学」：用海量文本反复调整参数，让模型猜下一个词猜得越来越准，要花几周到几个月。推理是「用」：参数固定不动，只是把上面这套流程一遍遍地跑。本页讲的全是推理。</p></div>
+      <div><h4>它真的「懂」吗？</h4><p>它学到的是词与词之间极其复杂的规律，复杂到足以表现出翻译、总结、写代码、推理的能力。至于这算不算「理解」，学界还有争论。</p></div>
+      <div><h4>它会上网查资料吗？</h4><p>模型本身不会，知识都压缩在参数里，所以它不知道训练之后发生的事。有些产品会额外接上搜索工具，把搜到的内容放进上下文，再让模型阅读。</p></div>
+      <div><h4>为什么会一本正经地胡说？</h4><p>它每一步挑的是「听起来最像」的词，而不是「核实过」的事实。当训练数据里信息不足时，它依然能流畅地编出来，这就是常说的「幻觉」。</p></div>
+      <div><h4>「上下文窗口」是什么？</h4><p>模型一次最多能看多少个词元。注意力要让每个词回头看所有前文，文字越长，计算量和 KV 缓存越大，所以窗口有上限（从几千到上百万词元不等）。</p></div>
+      <div><h4>为什么回答是一个字一个字冒出来的？</h4><p>因为它真的就是一个词元一个词元生成的（第 8 步）。产品把每一轮的结果立刻显示出来，就成了打字机效果。</p></div>
+    </div>
+
+    <h3>术语对照表</h3>
+    <div class="gl-wrap">
+      <table class="gl">
+        <thead><tr><th>中文</th><th>英文</th><th>一句话解释</th></tr></thead>
+        <tbody>
+          <tr><td>词元</td><td>Token</td><td>模型处理文字的最小单位，可能是一个字、一个词或词的一部分</td></tr>
+          <tr><td>向量 / 嵌入</td><td>Vector / Embedding</td><td>用一长串数字表示一个词的意思</td></tr>
+          <tr><td>位置编码</td><td>Positional Encoding</td><td>告诉模型每个词排在第几位</td></tr>
+          <tr><td>注意力</td><td>Attention</td><td>每个词给其他词打相关度分，并按比例吸收信息</td></tr>
+          <tr><td>Q / K / V</td><td>Query / Key / Value</td><td>提问、标签、内容，注意力打分和吸收信息用的三样东西</td></tr>
+          <tr><td>注意力头</td><td>Attention Head</td><td>从某个特定角度看问题的一组注意力，每层有很多个</td></tr>
+          <tr><td>前馈网络</td><td>Feed-Forward Network</td><td>每个词各自经过的一大组神经元，存着大量知识</td></tr>
+          <tr><td>层</td><td>Layer / Block</td><td>注意力 + 前馈网络，大模型叠几十到上百层</td></tr>
+          <tr><td>残差连接</td><td>Residual Connection</td><td>每层在原有向量上「加批注」，而不是推倒重写</td></tr>
+          <tr><td>参数</td><td>Parameters</td><td>模型里所有可调的数字，训练就是调整它们</td></tr>
+          <tr><td>分数 / 概率</td><td>Logits / Softmax</td><td>给每个候选词打分，再换算成总和为 100% 的概率</td></tr>
+          <tr><td>温度</td><td>Temperature</td><td>控制抽签随机程度的旋钮</td></tr>
+          <tr><td>自回归</td><td>Autoregressive</td><td>生成一个词、接回去、再生成下一个</td></tr>
+          <tr><td>KV 缓存</td><td>KV Cache</td><td>保存已经算好的 Key 和 Value，避免重复计算</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="wrap foot">
+  <p>本页所有数字（概率、编号、注意力比例、神经元含义）都是为教学编写的示意值，不是某个真实模型的输出。结构和流程依据 GPT 类模型（Transformer 解码器）的通用原理。</p>
+</footer>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const RM = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const CANCEL = new Error('cancel');
+const NS = 'http://www.w3.org/2000/svg';
+const HUES = [212, 28, 152, 330, 262, 188, 46, 4, 120, 292, 236, 16, 170, 312];
+const PUNCT = /^[，。！？、；：,.!?;:⟨]/;
+
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  if (attrs) for (const k in attrs) {
+    const v = attrs[k];
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v;
+    else if (k === 'style') e.style.cssText = v;
+    else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of kids.flat()) { if (c == null || c === false) continue; e.append(c.nodeType ? c : document.createTextNode(String(c))); }
+  return e;
+}
+function sv(tag, attrs, text) {
+  const e = document.createElementNS(NS, tag);
+  if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  return e;
+}
+function hash(str) { let x = 2166136261; for (const ch of str) { x ^= ch.codePointAt(0); x = Math.imul(x, 16777619); } return x >>> 0; }
+function rng(seed) { let s = (seed >>> 0) || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
+const tokenId = t => 100 + hash(t) % 99900;
+function cellColor(v) { const t = Math.min(1, Math.abs(v) / 1.3); const p = Math.round(8 + t * 84); return `color-mix(in srgb, var(${v >= 0 ? '--att' : '--vec'}) ${p}%, var(--paper-2))`; }
+function strip(vals) { return h('span', { class: 'strip' }, vals.map(v => h('i', { style: 'background:' + cellColor(v) }))); }
+function setStrip(el, vals) { vals.forEach((v, i) => { const c = el.children[i]; if (c) c.style.background = cellColor(v); }); }
+function vecFor(word, n, base, noise) { const r = rng(hash(word) * 7 + 3); return Array.from({ length: n }, (_, i) => (base ? base[i] : 0) + (r() * 2 - 1) * (noise == null ? 1.1 : noise)); }
+function tokEl(text, hue, cls) { return h('span', { class: 'tok' + (PUNCT.test(text) ? ' punct' : '') + (cls ? ' ' + cls : ''), style: '--h:' + hue }, text); }
+const fmtP = p => p >= 10 ? Math.round(p) + '%' : p >= 1 ? p.toFixed(1) + '%' : p >= 0.1 ? p.toFixed(1) + '%' : '<0.1%';
+function softmax(xs, T) { const m = Math.max(...xs); const e = xs.map(x => Math.exp((x - m) / (T || 1))); const s = e.reduce((a, b) => a + b, 0); return e.map(x => x / s); }
+const solid = hue => `hsl(${hue} var(--chip-s) var(--chip-solid-l))`;
+function pressSeg(group, attr, val) { $$('button', group).forEach(b => b.setAttribute('aria-pressed', String(b.dataset[attr] === String(val)))); }
+
+/* Runs a demo only while it is on screen; bumping gen cancels the running loop. */
+function runner(el, threshold) {
+  const r = { visible: false, paused: false, gen: 0, q: [], started: false, onFirst: null };
+  const flush = () => { if (r.visible && !r.paused) { const q = r.q; r.q = []; q.forEach(f => f()); } };
+  new IntersectionObserver(es => {
+    es.forEach(e => { r.visible = e.isIntersecting; });
+    if (r.visible && !r.started && r.onFirst) { r.started = true; r.onFirst(); }
+    flush();
+  }, { threshold: threshold == null ? 0.2 : threshold }).observe(el);
+  r.wait = async (ms, g) => {
+    if (ms) await sleep(ms);
+    while (!(r.visible && !r.paused)) await new Promise(res => r.q.push(res));
+    if (g !== r.gen) throw CANCEL;
+  };
+  r.check = g => { if (g !== r.gen) throw CANCEL; };
+  r.setPaused = p => { r.paused = p; flush(); };
+  return r;
+}
+function guard(fn) { return async (...a) => { try { await fn(...a); } catch (e) { if (e !== CANCEL) throw e; } }; }
+
+function fly(fromEl, toEl, text, after) {
+  if (RM || !fromEl || !toEl) return Promise.resolve();
+  const a = fromEl.getBoundingClientRect(), b = toEl.getBoundingClientRect();
+  const f = h('span', { class: 'fly' }, text);
+  document.body.append(f);
+  const fw = f.offsetWidth, fh = f.offsetHeight;
+  const x0 = a.left + a.width / 2 - fw / 2, y0 = a.top + a.height / 2 - fh / 2;
+  const x1 = after ? b.right + 6 : b.left, y1 = b.top + b.height / 2 - fh / 2;
+  const anim = f.animate([
+    { transform: `translate(${x0}px,${y0}px)` },
+    { transform: `translate(${(x0 + x1) / 2}px,${Math.min(y0, y1) - 46}px) scale(1.12)`, offset: 0.5 },
+    { transform: `translate(${x1}px,${y1}px)` }
+  ], { duration: 760, easing: 'cubic-bezier(.45,0,.25,1)' });
+  return anim.finished.then(() => f.remove(), () => f.remove());
+}
+
+/* ================= hero ================= */
+(function hero() {
+  const root = $('#hero-demo');
+  const gen = $('.hd-gen', root), caret = $('.caret', root), bars = $('.bars', root), st = $('.hd-status', root);
+  const bPause = $('[data-act="pause"]', root), bReset = $('[data-act="reset"]', root);
+  const R = runner(root, 0.3);
+  const ROUNDS = [
+    { c: [['公园', 38], ['爬山', 21], ['海边', 14], ['郊游', 11], ['逛街', 8]], pick: 0 },
+    { c: [['散步', 41], ['玩', 22], ['野餐', 17], ['吧', 9], ['看花', 6]], pick: 2 },
+    { c: [['吧', 46], ['。', 30], ['，', 12], ['好不好', 7], ['呀', 3]], pick: 0 },
+    { c: [['！', 52], ['。', 33], ['～', 9], ['？', 3], ['…', 2]], pick: 0 },
+    { c: [['⟨结束⟩', 91], ['你', 3], ['我们', 2], ['然后', 2], ['记得', 1]], pick: 0 }
+  ];
+  function draw(rd) {
+    bars.replaceChildren(...rd.c.map(([t, p]) => h('div', { class: 'bar-row' },
+      h('span', { class: 'bar-lab' }, t), h('span', { class: 'bar-track' }, h('span', { class: 'bar-fill' })), h('span', { class: 'bar-val mono' }, p + '%'))));
+    const fills = $$('.bar-fill', bars);
+    requestAnimationFrame(() => requestAnimationFrame(() => fills.forEach((f, i) => { f.style.width = rd.c[i][1] + '%'; })));
+  }
+  const play = guard(async function loop() {
+    for (;;) {
+      const g = R.gen;
+      gen.replaceChildren(); caret.hidden = false;
+      for (let k = 0; k < ROUNDS.length; k++) {
+        const rd = ROUNDS[k];
+        st.innerHTML = `<b>第 ${k + 1} 轮</b> · 读完整句，给候选词打分（只列前 5 名）`;
+        draw(rd);
+        await R.wait(1700, g);
+        const row = bars.children[rd.pick];
+        row.classList.add('pick');
+        const [t, p] = rd.c[rd.pick];
+        const end = t === '⟨结束⟩';
+        st.innerHTML = end
+          ? `<b>第 ${k + 1} 轮</b> · 抽中「结束」标记，这句话写完了`
+          : `<b>第 ${k + 1} 轮</b> · 按概率抽签，抽中「${t}」（${p}%）` + (rd.pick ? '<br><span class="hl">不是第一名也可能被抽中：模型是按概率抽签的</span>' : '');
+        await R.wait(1000, g);
+        if (end) { caret.hidden = true; await R.wait(3400, g); break; }
+        await fly($('.bar-lab', row), caret, t);
+        await R.wait(0, g);
+        gen.append(h('span', { class: 'pop' }, t));
+        await R.wait(rd.pick ? 1400 : 500, g);
+      }
+    }
+  });
+  bPause.addEventListener('click', () => {
+    R.setPaused(!R.paused);
+    bPause.textContent = R.paused ? '继续' : '暂停';
+    bPause.setAttribute('aria-pressed', String(R.paused));
+  });
+  bReset.addEventListener('click', () => {
+    R.gen++;
+    if (R.paused) { R.setPaused(false); bPause.textContent = '暂停'; bPause.setAttribute('aria-pressed', 'false'); }
+    play();
+  });
+  if (!RM) R.onFirst = play;
+})();
+
+/* ================= toc ================= */
+(function toc() {
+  const links = $$('.toc a'), inner = $('.toc-in');
+  const map = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const io = new IntersectionObserver(es => {
+    es.forEach(e => {
+      if (!e.isIntersecting) return;
+      const a = map.get(e.target.id);
+      links.forEach(l => l.classList.toggle('on', l === a));
+      if (a) inner.scrollTo({ left: a.offsetLeft - inner.clientWidth / 2 + a.offsetWidth / 2, behavior: RM ? 'auto' : 'smooth' });
+    });
+  }, { rootMargin: '-40% 0px -55% 0px' });
+  map.forEach((_, id) => { const s = document.getElementById(id); if (s) io.observe(s); });
+})();
+
+/* ================= 1 tokenizer ================= */
+(function tokenizer() {
+  const root = $('#tk');
+  const form = $('#tk-form'), inp = $('#tk-input'), row = $('.tk-row', root), knife = $('.knife', root);
+  const stat = $('.tk-stat', root), ids = $('.tk-ids', root);
+  const ZH = new Set(('我们 你们 他们 她们 它们 今天 明天 昨天 天气 苹果 喜欢 厉害 真的 什么 为什么 怎么 大模型 模型 人工智能 智能 学习 机器 机器学习 注意力 ' +
+    '中国 北京 上海 东京 巴黎 公园 一起 电脑 手机 朋友 时间 工作 问题 可以 知道 已经 没有 因为 所以 但是 如果 这个 那个 一个 自己 生活 世界 语言 文字 ' +
+    '句子 翻译 数据 计算 预测 生成 小猫 小狗 桌子 妈妈 爸爸 老师 学生 学校 吃饭 睡觉 飞机 汽车 咖啡 蛋糕 你好 谢谢 非常 特别 开心 快乐 漂亮 简单 复杂 ' +
+    '原理 推理 训练 神经 网络 神经网络 技术 科学 程序 代码 编程 床前 明月 故乡 地上 很好 天空 蓝色 大家 现在 以后 以前 今年 明年 公司 会议 报告 客户 ' +
+    '产品 设计 图片 视频 音乐 电影 游戏 运动 散步 爬山 海边 早上 晚上 中午 春天 夏天 秋天 冬天 下雨 下雪 太阳 月亮 星星 美国 日本 英国 法国 德国 足球 ' +
+    '篮球 医生 医院 银行 超市 火锅 米饭 面条 水果 香蕉 西瓜 葡萄 老虎 兔子 熊猫 长城 大学 研究 发展 经济 社会 文化 历史 未来 希望 觉得 认为 应该 需要 ' +
+    '能够 正在 一直 还是 或者 而且 然后 虽然 不过 只是 就是 这样 怎样 多少 东西 地方 时候 回答 聊天 助手 帮助 请问 帮我 一下 知识 信息 系统 方法 结果 ' +
+    '开始 结束 继续 人类 动物 植物 城市 国家 孩子 男人 女人 国王 女王 美丽 可爱 好吃 喝水 吃面').split(' '));
+  const EN_SUB = ['trans', 'form', 'er', 'un', 'believ', 'able', 'chat', 'gpt', 'token', 'iz', 'ation', 'ing', 'tion', 'ed', 'ly', 're', 'pre',
+    'ment', 'ness', 'super', 'inter', 'net', 'work', 'learn', 'deep', 'mind', 'open', 'ai', 'llm', 'hello', 'world', 'atten', 'model', 'lang', 'uage'];
+  const EN_WHOLE = new Set(['i', 'a', 'the', 'is', 'am', 'are', 'love', 'ai', 'cat', 'dog', 'apple', 'pie', 'hello', 'world', 'you', 'good', 'day', 'claude',
+    'model', 'big', 'deep', 'learn', 'word', 'text', 'next', 'this', 'that', 'and', 'or', 'to', 'of', 'in', 'it', 'my', 'we', 'how', 'what', 'why', 'gpt', 'token']);
+  function splitEn(w) {
+    const lw = w.toLowerCase();
+    if (EN_WHOLE.has(lw) || w.length <= 3) return [w];
+    const out = []; let p = 0;
+    while (p < w.length) {
+      let best = 0;
+      for (const s of EN_SUB) if (s.length > best && lw.startsWith(s, p)) best = s.length;
+      if (!best) best = Math.min(w.length - p, 3);
+      out.push(w.slice(p, p + best)); p += best;
+    }
+    return out;
+  }
+  function tokenize(s) {
+    const cs = Array.from(s), out = []; let i = 0;
+    const isL = c => /[A-Za-z]/.test(c), isD = c => /[0-9]/.test(c), isH = c => /[㐀-鿿]/.test(c);
+    while (i < cs.length) {
+      const c = cs[i];
+      if (/\s/.test(c)) { i++; continue; }
+      if (isL(c)) { let j = i; while (j < cs.length && isL(cs[j])) j++; out.push(...splitEn(cs.slice(i, j).join(''))); i = j; continue; }
+      if (isD(c)) { let j = i; while (j < cs.length && isD(cs[j]) && j - i < 3) j++; out.push(cs.slice(i, j).join('')); i = j; continue; }
+      if (isH(c)) {
+        let got = 1;
+        for (let L = Math.min(4, cs.length - i); L > 1; L--) if (ZH.has(cs.slice(i, i + L).join(''))) { got = L; break; }
+        out.push(cs.slice(i, i + got).join('')); i += got; continue;
+      }
+      out.push(c); i++;
+    }
+    return out;
+  }
+  let run = 0;
+  function render(toks, joined) {
+    row.replaceChildren(...toks.map((t, i) => h('span', { class: 'tk' + (joined ? ' joined' : ' show-id'), style: '--h:' + HUES[i % HUES.length] },
+      h('span', null, t), h('span', { class: 'tk-id' }, '#' + tokenId(t)))));
+  }
+  function summary(text, toks) {
+    stat.textContent = `${Array.from(text.replace(/\s/g, '')).length} 个字符 → ${toks.length} 个词元`;
+    ids.textContent = '[' + toks.map(tokenId).join(', ') + ']';
+  }
+  async function cut(text) {
+    const my = ++run;
+    text = text.trim() || '我爱吃苹果派';
+    const toks = tokenize(text);
+    if (RM) { render(toks, false); summary(text, toks); return; }
+    render(toks, true);
+    stat.textContent = ''; ids.textContent = '';
+    knife.classList.remove('go'); void knife.offsetWidth; knife.classList.add('go');
+    await sleep(620); if (my !== run) return;
+    const els = Array.from(row.children);
+    for (const el of els) { el.classList.remove('joined'); await sleep(70); if (my !== run) return; }
+    await sleep(260); if (my !== run) return;
+    for (const el of els) { el.classList.add('show-id'); await sleep(40); if (my !== run) return; }
+    summary(text, toks);
+  }
+  const first = tokenize(inp.value); render(first, false); summary(inp.value, first);
+  form.addEventListener('submit', e => { e.preventDefault(); cut(inp.value); });
+  $$('.tk-presets button', root).forEach(b => b.addEventListener('click', () => { inp.value = b.dataset.t; cut(b.dataset.t); }));
+  const R = runner(root, 0.5);
+  if (!RM) R.onFirst = () => cut(inp.value);
+})();
+
+/* ================= 2 embedding ================= */
+(function embedding() {
+  const root = $('#emb'), svg = $('.emb-svg', root), prog = $('.emb-prog', root), res = $('.emb-res', root);
+  const slots = $$('.emb-slot', root), sim = $('.emb-sim', root);
+  const CL = { 动物: { x: 40, y: 42, h: 28 }, 水果: { x: 392, y: 42, h: 120 }, 动作: { x: 236, y: 160, h: 292 }, 城市: { x: 40, y: 252, h: 212 }, 人物: { x: 372, y: 222, h: 330 } };
+  const P = [['猫', 70, 90, '动物'], ['狗', 150, 80, '动物'], ['兔子', 80, 135, '动物'], ['老虎', 160, 128, '动物'],
+    ['苹果', 420, 86, '水果'], ['香蕉', 500, 80, '水果'], ['西瓜', 430, 130, '水果'], ['葡萄', 510, 126, '水果'],
+    ['跑', 265, 192, '动作'], ['走', 330, 186, '动作'], ['跳', 292, 232, '动作'],
+    ['北京', 70, 292, '城市'], ['东京', 150, 284, '城市'], ['巴黎', 80, 334, '城市'], ['伦敦', 160, 328, '城市'],
+    ['国王', 400, 256, '人物'], ['女王', 494, 260, '人物'], ['男人', 400, 328, '人物'], ['女人', 500, 328, '人物']];
+  const idx = w => P.findIndex(p => p[0] === w);
+  const BASE = {}; for (const k in CL) BASE[k] = vecFor('cluster-' + k, 16, null, 1.2);
+  const V = P.map(([w, , , c]) => {
+    const v = vecFor(w, 16, BASE[c], 0.4);
+    if (c === '人物') {
+      const fem = w.startsWith('女'), roy = w === '国王' || w === '女王';
+      for (let d = 0; d < 3; d++) v[d] += fem ? -1.2 : 1.2;
+      for (let d = 3; d < 5; d++) v[d] += roy ? 1.2 : -0.6;
+    }
+    return v;
+  });
+  const defs = sv('defs');
+  [['ah-v', 'var(--vec)'], ['ah-a', 'var(--att)']].forEach(([id, col]) => {
+    const m = sv('marker', { id, viewBox: '0 0 10 10', refX: '8', refY: '5', markerWidth: '7', markerHeight: '7', orient: 'auto-start-reverse' });
+    const p = sv('path', { d: 'M0,0 L10,5 L0,10 z' }); p.style.fill = col; m.append(p); defs.append(m);
+  });
+  svg.append(defs);
+  for (const k in CL) svg.append(sv('text', { class: 'cl', x: CL[k].x, y: CL[k].y }, k));
+  const an = sv('g', { class: 'an' });
+  const l1 = sv('line', { class: 'an-line', 'marker-end': 'url(#ah-v)' }); l1.style.stroke = 'var(--vec)';
+  const l2 = sv('line', { class: 'an-line', 'marker-end': 'url(#ah-a)' }); l2.style.stroke = 'var(--att)';
+  an.append(l1, l2); an.style.display = 'none'; svg.append(an);
+  const G = P.map(([w, x, y, c], i) => {
+    const g = sv('g', { class: 'pt', tabindex: '0', role: 'button', 'aria-label': w, transform: `translate(${x},${y})` });
+    const ci = sv('circle', { r: '6' }); ci.style.fill = solid(CL[c].h);
+    g.append(ci, sv('text', { x: '10', y: '5' }, w));
+    g.addEventListener('click', () => pick(i));
+    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(i); } });
+    svg.append(g);
+    return g;
+  });
+  const place = (i, x, y) => G[i].setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)})`);
+  let sel = [idx('猫'), idx('狗')];
+  function cos(a, b) { let d = 0, na = 0, nb = 0; for (let i = 0; i < a.length; i++) { d += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; } return d / Math.sqrt(na * nb); }
+  function renderSlots() {
+    sel.forEach((i, k) => {
+      const [w, , , c] = P[i];
+      slots[k].replaceChildren(h('span', { class: 'ab' }, k ? 'B' : 'A'), tokEl(w, CL[c].h), h('span', { class: 'id mono' }, '#' + tokenId(w)), h('span', { class: 'arr' }, '→'), strip(V[i]));
+    });
+    G.forEach((g, i) => g.classList.toggle('sel', sel.includes(i)));
+    const s = Math.max(0, cos(V[sel[0]], V[sel[1]])) * 100;
+    const verdict = s > 70 ? '很像，属于同一类' : s > 35 ? '有点像' : '几乎不相干';
+    sim.replaceChildren(h('span', null, `「${P[sel[0]][0]}」和「${P[sel[1]][0]}」的相似度`), h('span', { class: 'emb-meter' }, h('i', { style: `width:${s.toFixed(0)}%` })), h('b', { class: 'mono' }, s.toFixed(0) + '%'), h('span', { class: 'stage-hint' }, verdict));
+  }
+  function pick(i) { if (sel.includes(i)) return; sel = [sel[1], i]; renderSlots(); }
+  let animGen = 0;
+  function tween(dur, fn) {
+    const g = animGen, t0 = performance.now();
+    return new Promise(res => {
+      if (RM || !dur) { fn(1); res(); return; }
+      const f = now => { if (g !== animGen) { res(); return; } const t = Math.min(1, (now - t0) / dur); fn(t); t < 1 ? requestAnimationFrame(f) : res(); };
+      requestAnimationFrame(f);
+    });
+  }
+  const ease = t => 1 - Math.pow(1 - t, 3);
+  function snap() { P.forEach((p, i) => place(i, p[1], p[2])); }
+  function learn() {
+    animGen++; an.style.display = 'none'; res.textContent = ''; G.forEach(g => g.classList.remove('pulse'));
+    const from = P.map(() => ({ x: 30 + Math.random() * 520, y: 30 + Math.random() * 300 }));
+    const T = 2000;
+    return tween(T, t => {
+      P.forEach((p, i) => { const d = i * 0.02; const e = ease(Math.max(0, Math.min(1, (t - d) / (1 - 0.4)))); place(i, from[i].x + (p[1] - from[i].x) * e, from[i].y + (p[2] - from[i].y) * e); });
+      prog.textContent = t < 1 ? `训练中… 读过的文本越多，词的位置越准（${Math.round(t * 100)}%）` : '训练完成：意思相近的词，自己聚到了一起。';
+    });
+  }
+  async function analogy() {
+    animGen++; snap(); G.forEach(g => g.classList.remove('pulse'));
+    const g = animGen;
+    const M = P[idx('男人')], W = P[idx('女人')], K = P[idx('国王')];
+    const dx = W[1] - M[1], dy = W[2] - M[2];
+    sel = [idx('男人'), idx('女人')]; renderSlots();
+    res.innerHTML = '先看「男人 → 女人」这个方向……';
+    an.style.display = '';
+    [l1, l2].forEach(l => { l.setAttribute('x1', 0); l.setAttribute('y1', 0); l.setAttribute('x2', 0); l.setAttribute('y2', 0); });
+    l1.setAttribute('x1', M[1]); l1.setAttribute('y1', M[2]);
+    await tween(700, t => { const e = ease(t); l1.setAttribute('x2', M[1] + dx * e); l1.setAttribute('y2', M[2] + dy * e); });
+    if (g !== animGen) return;
+    await sleep(RM ? 0 : 500);
+    if (g !== animGen) return;
+    res.innerHTML = '……把同一个方向，从「国王」出发再走一遍……';
+    l2.setAttribute('x1', K[1]); l2.setAttribute('y1', K[2]);
+    await tween(800, t => { const e = ease(t); l2.setAttribute('x2', K[1] + dx * e); l2.setAttribute('y2', K[2] + dy * e); });
+    if (g !== animGen) return;
+    const q = idx('女王');
+    G[q].classList.add('pulse');
+    sel = [idx('国王'), q]; renderSlots();
+    res.innerHTML = '国王 − 男人 + 女人 ≈ <b>女王</b>。「性别」在地图上是一个固定的方向。';
+  }
+  $('[data-act="learn"]', root).addEventListener('click', learn);
+  $('[data-act="analogy"]', root).addEventListener('click', analogy);
+  renderSlots();
+  prog.textContent = '点「看它从乱序中学出来」，看训练是怎样把词摆到一起的。';
+  const R = runner(root, 0.35);
+  if (!RM) R.onFirst = learn;
+})();
+
+/* ================= 3 position ================= */
+(function position() {
+  const root = $('#pos'), seg = $('.seg', root), rowsEl = $$('.pos-row', root), verdict = $('.pos-verdict', root), note = $('.pos-note', root);
+  const HUE = { 狗: 28, 咬: 262, 人: 152 };
+  const WV = {}; ['狗', '咬', '人'].forEach(w => { WV[w] = vecFor('pos-' + w, 12, null, 0.9); });
+  const PV = p => Array.from({ length: 12 }, (_, d) => Math.sin((p + 1) / Math.pow(1.8, Math.floor(d / 2)) + (d % 2 ? 1.3 : 0)) * 1.05);
+  const DEF = [['狗', '咬', '人'], ['人', '咬', '狗']];
+  const cells = [];
+  DEF.forEach((ws, r) => rowsEl[r].replaceChildren(...ws.map((w, p) => {
+    const s = strip(WV[w]);
+    const c = h('div', { class: 'pos-cell' }, h('div', { class: 'pos-tw' }, tokEl(w, HUE[w]), h('span', { class: 'stamp mono' }, '①②③'[p])), s);
+    cells.push({ c, s, w, p });
+    return c;
+  })));
+  function apply(on) {
+    root.classList.toggle('withpos', on);
+    pressSeg(seg, 'p', on ? 1 : 0);
+    cells.forEach(({ c, s, w, p }) => {
+      setStrip(s, on ? WV[w].map((x, i) => x + PV(p)[i]) : WV[w]);
+      c.classList.toggle('cmp', on && w === '狗');
+    });
+    verdict.innerHTML = on
+      ? '<span>模型收到：<b>狗①咬②人③</b> 和 <b>人①咬②狗③</b></span><span class="sign neq">≠ 不一样了，分得清谁咬谁</span>'
+      : '<span>模型收到：两句都是 <b>｛狗、咬、人｝</b> 这一袋词</span><span class="sign eq">= 完全一样，分不清谁咬谁</span>';
+    note.textContent = on
+      ? '看两个橙框里的「狗」：同一个字，一个在第 1 位，一个在第 3 位，色条已经不一样了。'
+      : '没有位置信息时，两句话里同一个字的向量（下方色条）完全相同。';
+  }
+  const R = runner(root, 0.4);
+  let on = false;
+  const auto = guard(async () => { const g = R.gen; for (;;) { await R.wait(3200, g); on = !on; apply(on); } });
+  seg.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; R.gen++; on = b.dataset.p === '1'; apply(on); });
+  apply(false);
+  if (!RM) R.onFirst = auto;
+})();
+
+/* ================= 4 attention ================= */
+const ATT = { v: 0, head: 'mix', sel: 13, subs: [] };
+const attTokens = v => ['小明', '很', '渴', '，', '小红', '很', '饿', '。', '妈妈', '端来', v ? '一杯' : '一碗', v ? '水' : '面', '，', '递给了'];
+const ATT_HUE = [212, 236, 188, 0, 330, 236, 4, 0, 262, 152, 46, 28, 0, 120];
+function attSetVariant(v) { ATT.v = v; ATT.subs.forEach(f => f()); }
+
+(function attention() {
+  const root = $('#att'), inner = $('.att-inner', root), svg = $('.att-svg', root), scroller = $('.att-scroll', root);
+  const cap = $('.att-cap', root), headNote = $('.att-headnote', root), predBars = $('.att-pred .bars', root);
+  const segV = $$('.seg', root)[0], segH = $$('.seg', root)[1];
+  const HEADNOTE = {
+    mix: '综合：把几个注意力头的结果合在一起看。',
+    people: '① 这个头专门找「人物」：谁是这件事里的人？',
+    need: '② 这个头专门找「需求和东西」：谁渴、谁饿、端来的是什么？',
+    prev: '③ 这个头只盯着紧挨着的前一个词，负责语法上的衔接。'
+  };
+  const PRED = [[['小红', 81], ['小明', 8], ['她', 6], ['大家', 3], ['客人', 1]], [['小明', 78], ['小红', 11], ['他', 6], ['大家', 3], ['客人', 1]]];
+  function headScores(i, head, v) {
+    const s = new Array(i + 1).fill(0.02);
+    if (head === 'prev') { if (i > 0) s[i - 1] = 3; s[i] = 0.8; return s; }
+    if (head === 'people') {
+      [0, 4, 8].filter(j => j <= i).forEach(j => { s[j] = 1; });
+      if (i === 2) s[0] = 3;
+      if (i === 6) { s[4] = 3; s[0] = 0.3; }
+      if (i >= 9 && i <= 12) s[8] = 3;
+      if (i === 13) { if (v === 0) { s[4] = 3.2; s[0] = 0.5; } else { s[0] = 3.2; s[4] = 0.5; } s[8] = 0.6; }
+      s[i] = Math.max(s[i], 0.4);
+      return s;
+    }
+    [1, 2, 5, 6, 10, 11].filter(j => j <= i).forEach(j => { s[j] = (j === 1 || j === 5) ? 0.4 : 1; });
+    if (i === 2) s[1] = 1.5;
+    if (i === 6) { s[5] = 1.5; s[2] = 0.6; }
+    if (i === 11) s[10] = 2.4;
+    if (i === 13) { s[11] = 3; s[10] = 0.8; if (v === 0) { s[6] = 2.6; s[2] = 0.5; } else { s[2] = 2.6; s[6] = 0.5; } }
+    s[i] = Math.max(s[i], 0.4);
+    return s;
+  }
+  const norm = a => { const t = a.reduce((x, y) => x + y, 0); return a.map(x => x / t); };
+  function weights(i, head, v) {
+    if (head !== 'mix') return norm(headScores(i, head, v));
+    const a = norm(headScores(i, 'people', v)), b = norm(headScores(i, 'need', v)), c = norm(headScores(i, 'prev', v));
+    return a.map((x, k) => 0.45 * x + 0.45 * b[k] + 0.1 * c[k]);
+  }
+  let btns = [];
+  function build() {
+    const toks = attTokens(ATT.v);
+    btns.forEach(b => b.remove());
+    btns = toks.map((t, i) => {
+      const b = h('button', { class: 'att-tok', type: 'button', 'aria-label': `${t}（第 ${i + 1} 个词）` }, tokEl(t, ATT_HUE[i]), h('span', { class: 'w mono' }, ''));
+      b.addEventListener('click', () => { touch(); ATT.sel = i; update(true); });
+      inner.append(b);
+      return b;
+    });
+  }
+  function drawArcs(w, animate) {
+    const W = inner.offsetWidth, H = inner.offsetHeight;
+    svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.replaceChildren();
+    const ib = inner.getBoundingClientRect();
+    const at = b => { const r = b.firstChild.getBoundingClientRect(); return { x: r.left - ib.left + r.width / 2, y: r.top - ib.top }; };
+    const s = at(btns[ATT.sel]), wmax = Math.max(...w);
+    w.forEach((x, j) => {
+      if (j === ATT.sel || x < 0.012) return;
+      const t = at(btns[j]);
+      const dx = Math.abs(s.x - t.x);
+      const cy = Math.min(s.y, t.y) - Math.min(100, 16 + dx * 0.2);
+      const p = sv('path', { class: 'arc', d: `M${s.x},${s.y - 3} Q${(s.x + t.x) / 2},${cy} ${t.x},${t.y - 3}` });
+      p.style.strokeWidth = (1 + (x / wmax) * 7).toFixed(2);
+      p.style.opacity = (0.2 + 0.8 * x / wmax).toFixed(2);
+      svg.append(p);
+      if (animate && !RM) {
+        const L = p.getTotalLength();
+        p.style.strokeDasharray = L; p.style.strokeDashoffset = L;
+        p.getBoundingClientRect();
+        p.style.transition = 'stroke-dashoffset .7s ease';
+        p.style.strokeDashoffset = 0;
+      }
+    });
+  }
+  function update(animate) {
+    const toks = attTokens(ATT.v), i = ATT.sel, w = weights(i, ATT.head, ATT.v), wmax = Math.max(...w);
+    btns.forEach((b, j) => {
+      const tok = b.firstChild, wl = b.lastChild;
+      b.classList.toggle('sel', j === i);
+      b.classList.toggle('future', j > i);
+      if (j > i) { tok.style.background = ''; b.classList.remove('hot'); wl.textContent = '看不到'; return; }
+      const r = w[j] / wmax;
+      tok.style.background = `color-mix(in srgb, var(--att) ${Math.round(r * 88)}%, hsl(${ATT_HUE[j]} var(--chip-s) var(--chip-bg-l)))`;
+      b.classList.toggle('hot', r > 0.5);
+      wl.textContent = fmtP(w[j] * 100);
+    });
+    drawArcs(w, animate);
+    const top = w.map((x, j) => [x, j]).filter(([, j]) => j !== i).sort((a, b) => b[0] - a[0]).slice(0, 3)
+      .map(([x, j]) => `<b>${toks[j]}</b> ${fmtP(x * 100)}`).join('、');
+    cap.innerHTML = i === 0 ? '「小明」是第一个词，前面没有别的词可看，只能看自己。' : `「${toks[i]}」最关注的是：${top}`;
+    headNote.textContent = HEADNOTE[ATT.head];
+    predBars.replaceChildren(...PRED[ATT.v].map(([t, p], k) => h('div', { class: 'bar-row' + (k === 0 ? ' pick' : '') },
+      h('span', { class: 'bar-lab' }, t), h('span', { class: 'bar-track' }, h('span', { class: 'bar-fill', style: `width:${p}%` })), h('span', { class: 'bar-val mono' }, p + '%'))));
+  }
+  const R = runner(root, 0.3);
+  let touched = false;
+  function touch() { if (!touched) { touched = true; R.gen++; } }
+  segV.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; touch(); attSetVariant(+b.dataset.v); });
+  segH.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; touch(); ATT.head = b.dataset.head; pressSeg(segH, 'head', ATT.head); update(true); });
+  ATT.subs.push(() => { pressSeg(segV, 'v', ATT.v); btns.forEach((b, j) => { b.firstChild.textContent = attTokens(ATT.v)[j]; }); update(true); });
+  build(); update(false);
+  scroller.scrollLeft = scroller.scrollWidth;
+  new ResizeObserver(() => update(false)).observe(inner);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => update(false));
+  const auto = guard(async () => { const g = R.gen; for (;;) { await R.wait(3800, g); attSetVariant(ATT.v ? 0 : 1); } });
+  if (!RM) R.onFirst = auto;
+})();
+
+(function qkv() {
+  const root = $('#qkv'), qEl = $('.qk-q', root), list = $('.qk-list', root), mixBar = $('.qk-mix-bar', root), mixLeg = $('.qk-mix-leg', root), cap = $('.qk-cap', root);
+  const stepBtns = $$('.qkv-steps button', root), bAuto = $('[data-act="auto"]', root);
+  const IDX = [0, 2, 4, 6, 8, 9, 10, 11];
+  const KEYS = v => ({ 0: '人物 · 口渴', 2: '需求：想喝东西', 4: '人物 · 饿了', 6: '需求：想吃东西', 8: '人物 · 递东西的人', 9: '动作：拿过来', 10: '数量', 11: v ? '饮料 · 能喝' : '食物 · 能吃' });
+  const SCORES = v => { const a = { 0: 2.1, 2: 1.2, 4: 4.3, 6: 3.6, 8: 1.0, 9: 0.8, 10: 0.9, 11: 3.2 }; if (v) { [a[0], a[4]] = [a[4], a[0]]; [a[2], a[6]] = [a[6], a[2]]; } return a; };
+  const CAPS = [
+    '',
+    '①「递给了」提出自己的问题（Query）：我在找接收东西的人，最好是正需要这样东西的人。',
+    '② 前面每个词亮出自己的标签（Key）。问题和标签越对得上，分数越高。',
+    '③ 用 softmax 把分数换算成比例：高分会被放大，低分被压小，所有比例加起来正好 100%。',
+    '④ 按比例把各个词的内容（Value）混合起来，成为「递给了」的新向量。现在它「知道」东西该给谁了。'
+  ];
+  let rows = [], step = 4;
+  function build() {
+    const toks = attTokens(ATT.v), keys = KEYS(ATT.v);
+    qEl.replaceChildren(tokEl('递给了', 120), h('span', { class: 'card' }, h('b', null, 'Query：'), '我在找接收东西的人，最好是正需要它的人'));
+    rows = IDX.map(j => {
+      const bar = h('i'), num = h('span', { class: 'qk-num mono' }, '');
+      list.append(h('div', { class: 'qk-row' }, tokEl(toks[j], ATT_HUE[j]), h('span', { class: 'qk-key' }, h('span', { class: 'k' }, 'Key'), keys[j]), h('span', { class: 'qk-bar' }, bar), num));
+      return { j, bar, num };
+    });
+    mixBar.replaceChildren(...IDX.map(j => h('i', { style: 'background:' + solid(ATT_HUE[j]) })));
+  }
+  function refresh() {
+    list.replaceChildren(); build(); setStep(step);
+  }
+  function setStep(s) {
+    step = s;
+    [2, 3, 4].forEach(k => root.classList.toggle('s' + k, s >= k));
+    stepBtns.forEach(b => { if (+b.dataset.s === s) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); });
+    const sc = SCORES(ATT.v), vals = IDX.map(j => sc[j]), smax = Math.max(...vals), w = softmax(vals, 1);
+    const toks = attTokens(ATT.v);
+    rows.forEach((r, k) => {
+      if (s < 2) { r.bar.style.width = '0'; r.num.textContent = ''; }
+      else if (s === 2) { r.bar.style.width = (vals[k] / smax * 100).toFixed(1) + '%'; r.num.textContent = vals[k].toFixed(1) + ' 分'; }
+      else { r.bar.style.width = (w[k] * 100).toFixed(1) + '%'; r.num.textContent = fmtP(w[k] * 100); }
+    });
+    Array.from(mixBar.children).forEach((seg, k) => { seg.style.width = s >= 4 ? (w[k] * 100).toFixed(2) + '%' : '0'; });
+    const order = w.map((x, k) => [x, k]).sort((a, b) => b[0] - a[0]);
+    const top = order.slice(0, 3), rest = order.slice(3).reduce((a, [x]) => a + x, 0);
+    mixLeg.textContent = top.map(([x, k]) => `${toks[IDX[k]]} ${fmtP(x * 100)}`).join(' + ') + ` + 其余 ${fmtP(rest * 100)}`;
+    cap.textContent = CAPS[s];
+  }
+  const R = runner(root, 0.3);
+  let autoOn = !RM;
+  const auto = guard(async () => { const g = R.gen; for (;;) { for (let s = 1; s <= 4; s++) { setStep(s); await R.wait(s === 4 ? 4500 : 2600, g); } } });
+  function setAuto(on) {
+    autoOn = on; R.gen++;
+    bAuto.textContent = on ? '自动播放中' : '自动播放';
+    bAuto.setAttribute('aria-pressed', String(on));
+    if (on) auto();
+  }
+  stepBtns.forEach(b => b.addEventListener('click', () => { setAuto(false); setStep(+b.dataset.s); }));
+  $('[data-act="prev"]', root).addEventListener('click', () => { setAuto(false); setStep(Math.max(1, step - 1)); });
+  $('[data-act="next"]', root).addEventListener('click', () => { setAuto(false); setStep(step >= 4 ? 1 : step + 1); });
+  bAuto.addEventListener('click', () => setAuto(!autoOn));
+  ATT.subs.push(refresh);
+  build(); setStep(4);
+  if (RM) { bAuto.textContent = '自动播放'; bAuto.setAttribute('aria-pressed', 'false'); }
+  else R.onFirst = auto;
+})();
+
+/* ================= 5 feed-forward ================= */
+(function ffn() {
+  const root = $('#ffn'), svg = $('.ffn-svg', root), seg = $('.seg', root), qEl = $('.ffn-q', root), leg = $('.ffn-leg', root), resEl = $('.ffn-res', root);
+  const IN = 10, COLS = 4, ROWS = 8;
+  const iy = i => 40 + i * 25, ny = r => 44 + r * 31;
+  let W, ix, ox, nx, inC, outC, neur, nlab, hot;
+  function geom(compact) { W = compact ? 360 : 640; ix = compact ? 34 : 70; ox = W - ix; nx = c => (compact ? 126 : 230) + c * (compact ? 36 : 60); }
+  const EX = [
+    { q: '埃菲尔铁塔位于', out: '巴黎', labels: ['地标建筑', '法国相关', '后面该接地名'] },
+    { q: '一加一等于', out: '二', labels: ['数字', '加法', '后面该接结果'] },
+    { q: '苹果是一种', out: '水果', labels: ['食物', '植物', '后面该接类别'] }
+  ];
+  EX.forEach(ex => {
+    const r = rng(hash(ex.q)), set = new Set();
+    while (set.size < 7) set.add(Math.floor(r() * COLS * ROWS));
+    ex.active = Array.from(set); ex.inV = vecFor('in-' + ex.q, IN); ex.outV = vecFor('out-' + ex.out, IN);
+  });
+  function build() {
+    svg.replaceChildren();
+    svg.setAttribute('viewBox', `0 0 ${W} 300`);
+    svg.append(sv('text', { class: 'cap', x: ix, y: 18 }, '输入向量'), sv('text', { class: 'cap', x: W / 2, y: 18 }, '前馈网络：一大排「开关」'), sv('text', { class: 'cap', x: ox, y: 18 }, '输出向量'));
+    let d = '';
+    for (let i = 0; i < IN; i++) for (let k = 0; k < COLS * ROWS; k++) d += `M${ix + 14},${iy(i)}L${nx(k % COLS)},${ny(Math.floor(k / COLS))}`;
+    for (let k = 0; k < COLS * ROWS; k++) for (let i = 0; i < IN; i++) d += `M${nx(k % COLS)},${ny(Math.floor(k / COLS))}L${ox - 14},${iy(i)}`;
+    svg.append(sv('path', { class: 'wire', d }));
+    hot = sv('g'); svg.append(hot);
+    const mkCell = (x, i) => sv('rect', { class: 'cell', x: x - 14, y: iy(i) - 9.5, width: 28, height: 19, rx: 4 });
+    inC = []; outC = []; neur = []; nlab = [];
+    for (let i = 0; i < IN; i++) { const a = mkCell(ix, i), b = mkCell(ox, i); svg.append(a, b); inC.push(a); outC.push(b); }
+    for (let k = 0; k < COLS * ROWS; k++) {
+      const x = nx(k % COLS), y = ny(Math.floor(k / COLS));
+      const c = sv('circle', { class: 'nr', cx: x, cy: y, r: 9 }), t = sv('text', { class: 'nl', x, y }, '');
+      svg.append(c, t); neur.push(c); nlab.push(t);
+    }
+  }
+  const mq = matchMedia('(max-width:560px)');
+  geom(mq.matches); build();
+  const blank = v => v.map(() => 0);
+  function paint(cells, v) { cells.forEach((c, i) => { c.style.fill = cellColor(v[i]); }); }
+  function lines(ex, dir, instant) {
+    const frag = document.createDocumentFragment();
+    ex.active.forEach(k => {
+      const x = nx(k % COLS), y = ny(Math.floor(k / COLS));
+      for (let i = 0; i < IN; i++) {
+        const l = dir === 'in' ? sv('line', { x1: ix + 14, y1: iy(i), x2: x, y2: y, pathLength: 1 }) : sv('line', { x1: x, y1: y, x2: ox - 14, y2: iy(i), pathLength: 1 });
+        l.setAttribute('class', 'hot' + (instant ? ' done' : ''));
+        frag.append(l);
+      }
+    });
+    hot.append(frag);
+  }
+  function lightUp(ex, on) {
+    neur.forEach((c, k) => c.classList.toggle('on', on && ex.active.includes(k)));
+    nlab.forEach((t, k) => { const n = ex.active.indexOf(k); t.textContent = on && n >= 0 && n < 3 ? '①②③'[n] : ''; t.classList.toggle('on', on && n >= 0 && n < 3); });
+  }
+  function header(ex) {
+    qEl.innerHTML = `${ex.q}<span class="blank">？</span>`;
+    leg.innerHTML = `亮起的开关里：<span class="n">①</span> 对「${ex.labels[0]}」敏感，<span class="n">②</span> 对「${ex.labels[1]}」敏感，<span class="n">③</span> 对「${ex.labels[2]}」敏感。`;
+    resEl.innerHTML = `→ 输出向量被推向了「<b>${ex.out}</b>」的方向，下一个词更可能是「${ex.out}」。`;
+    pressSeg(seg, 'x', EX.indexOf(ex));
+  }
+  function full(ex) { header(ex); hot.replaceChildren(); paint(inC, ex.inV); lines(ex, 'in', true); lines(ex, 'out', true); lightUp(ex, true); paint(outC, ex.outV); resEl.classList.add('on'); }
+  const R = runner(root, 0.3);
+  let cur = 0;
+  async function runOne(ex, g) {
+    header(ex); hot.replaceChildren(); lightUp(ex, false); paint(inC, blank(ex.inV)); paint(outC, blank(ex.outV)); resEl.classList.remove('on');
+    await R.wait(500, g);
+    paint(inC, ex.inV); await R.wait(700, g);
+    lines(ex, 'in'); await R.wait(800, g);
+    lightUp(ex, true); await R.wait(900, g);
+    lines(ex, 'out'); await R.wait(800, g);
+    paint(outC, ex.outV); resEl.classList.add('on');
+    await R.wait(3600, g);
+  }
+  const loop = guard(async () => { const g = R.gen; for (;;) { await runOne(EX[cur], g); cur = (cur + 1) % EX.length; } });
+  seg.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    R.gen++; cur = +b.dataset.x;
+    if (RM) full(EX[cur]); else loop();
+  });
+  full(EX[0]);
+  mq.addEventListener('change', e => {
+    R.gen++; geom(e.matches); build(); full(EX[cur]);
+    if (!RM && R.started) loop();
+  });
+  if (!RM) R.onFirst = loop;
+})();
+
+/* ================= 6 tower ================= */
+(function tower() {
+  const root = $('#tower'), grid = $('.tw-grid', root), capsEl = $('.tw-caps', root), out = $('.tw-out', root);
+  const TOK = ['今天', '天气', '很好', '，', '我们', '一起', '去'], TH = [46, 188, 152, 0, 212, 262, 28];
+  const L = [
+    { lab: '第 1 层', mix: c => [c], cap: '每个词先看清自己：「天气」是名词，「去」是动词。' },
+    { lab: '第 2 层', mix: c => (c > 0 && c !== 3 && c !== 4 ? [c - 1, c] : [c]), cap: '留意紧挨着的词：「一起」和「去」连在一起。' },
+    { lab: '第 3 层', mix: c => [[0], [0, 1], [1, 2], [3], [4], [4, 5], [4, 6]][c], cap: '理清语法：「很好」说的是「天气」；「去」的主语是「我们」。' },
+    { lab: '第 4 层', mix: c => [[0], [0, 1], [1, 2], [2, 3], [4], [4, 5], [4, 5, 6]][c], cap: '发现缺口：「去」后面还缺一个目的地。' },
+    { lab: '第 5 层', mix: c => [[0], [0, 1], [0, 1, 2], [2, 3], [4, 5], [4, 5], [1, 2, 4, 6]][c], cap: '理解语境：天气好 → 适合出门。' },
+    { lab: '第 6 层', mix: c => [[0, 1], [0, 1, 2], [0, 1, 2], [2, 3], [4, 5, 6], [4, 5, 6], [1, 2, 4, 5, 6]][c], cap: '信息越积越多，每个词都带上了整句的大意。' },
+    { lab: '第 N 层', mix: c => [[0, 1], [0, 1, 2], [0, 1, 2], [2, 3], [2, 4, 5, 6], [4, 5, 6], [0, 1, 2, 4, 5, 6]][c], cap: '最后一个词「去」的向量准备好了：下一个词多半是个户外地点。' }
+  ];
+  const col = c => TOK[c] === '，' ? 'var(--line-2)' : solid(TH[c]);
+  const bg = list => 'linear-gradient(90deg,' + list.map((c, k) => `${col(c)} ${(k * 100 / list.length).toFixed(1)}% ${((k + 1) * 100 / list.length).toFixed(1)}%`).join(',') + ')';
+  const rowEls = [];
+  const mkRow = (i) => {
+    const cells = TOK.map((_, c) => h('span', { class: 'tw-c', style: 'background:' + bg(L[i].mix(c)) }));
+    const r = h('div', { class: 'tw-row' }, h('span', { class: 'tw-lab' }, L[i].lab), cells);
+    rowEls[i] = { r, cells };
+    return r;
+  };
+  const kids = [mkRow(6), h('div', { class: 'tw-dots' }, '⋮ 中间还有几十层 ⋮')];
+  for (let i = 5; i >= 0; i--) kids.push(mkRow(i));
+  kids.push(h('div', { class: 'tw-row tw-toks' }, h('span', { class: 'tw-lab' }, '输入'), TOK.map((t, c) => tokEl(t, TH[c]))));
+  grid.replaceChildren(...kids);
+  const capLis = L.map(l => h('li', null, h('b', null, l.lab), l.cap));
+  capsEl.replaceChildren(...capLis);
+  const R = runner(root, 0.3);
+  function reset() { rowEls.forEach(({ r, cells }) => { r.classList.remove('active'); cells.forEach(c => c.classList.add('empty')); }); capLis.forEach(li => li.classList.remove('on')); out.classList.add('off'); }
+  const play = guard(async () => {
+    for (;;) {
+      const g = R.gen;
+      reset();
+      await R.wait(600, g);
+      for (let i = 0; i < L.length; i++) {
+        const { r, cells } = rowEls[i];
+        r.classList.add('active'); capLis[i].classList.add('on');
+        for (const c of cells) { c.classList.remove('empty'); await R.wait(70, g); }
+        await R.wait(i === L.length - 1 ? 1200 : 1100, g);
+        r.classList.remove('active'); capLis[i].classList.remove('on');
+      }
+      out.classList.remove('off');
+      await R.wait(4000, g);
+    }
+  });
+  $('[data-act="replay"]', root).addEventListener('click', () => { R.gen++; play(); });
+  if (!RM) R.onFirst = play;
+})();
+
+/* ================= 7 sampling ================= */
+(function sampling() {
+  const root = $('#samp'), rowsEl = $('.sp-rows', root), T = $('#temp'), tv = $('.sp-tval', root), desc = $('.sp-desc', root), res = $('.sp-res', root), seg = $('.seg', root);
+  const C = [['公园', 4.2], ['爬山', 3.6], ['海边', 3.3], ['郊游', 3.0], ['逛街', 2.6], ['看电影', 2.0], ['野餐', 1.8], ['上班', 0.1], ['月球', -1.2]];
+  const counts = C.map(() => 0); let total = 0, busy = false;
+  const rows = C.map(([t, l]) => {
+    const fill = h('span', { class: 'bar-fill' }), pc = h('span', { class: 'pc mono' }), ct = h('span', { class: 'ct mono' });
+    const r = h('div', { class: 'sp-row' }, h('span', null, t), h('span', { class: 'lg mono' }, l.toFixed(1)), h('span', { class: 'bar-track' }, fill), pc, ct);
+    rowsEl.append(r);
+    return { r, fill, pc, ct };
+  });
+  const probs = () => softmax(C.map(c => c[1]), +T.value);
+  function render() {
+    const p = probs(), t = +T.value;
+    rows.forEach((r, i) => { r.fill.style.width = (p[i] * 100).toFixed(2) + '%'; r.pc.textContent = fmtP(p[i] * 100); r.ct.textContent = counts[i] ? '×' + counts[i] : ''; });
+    tv.textContent = t.toFixed(2);
+    desc.textContent = t < 0.5 ? '温度很低：几乎总是选第一名。稳定，但每次都一样，有点死板。'
+      : t <= 1.3 ? '温度适中：大多选热门词，偶尔换个说法。多数聊天产品默认在这附近。'
+      : '温度很高：冷门词也常被抽中，更有创意，也更容易说出奇怪的话。';
+    $$('button', seg).forEach(b => b.setAttribute('aria-pressed', String(Math.abs(+b.dataset.t - t) < 0.001)));
+  }
+  function sample() { const p = probs(); let u = Math.random(), k = 0; for (; k < p.length - 1; k++) { u -= p[k]; if (u < 0) break; } return k; }
+  function mark(k, win) { rows.forEach((r, i) => { r.r.classList.toggle('hi', i === k && !win); r.r.classList.toggle('win', i === k && !!win); }); }
+  function record(k) { counts[k]++; total++; res.innerHTML = `这次抽中：<b>${C[k][0]}</b>　<span class="stage-hint">已抽 ${total} 次</span>`; render(); }
+  async function one() {
+    if (busy) return; busy = true;
+    const k = sample();
+    if (!RM) { const n = C.length, steps = 16; for (let s = 0; s < steps; s++) { mark(((k - steps + 1 + s) % n + n) % n); await sleep(35 + s * s * 1.1); } }
+    mark(k, true); record(k); busy = false;
+  }
+  async function many() {
+    if (busy) return; busy = true;
+    for (let i = 0; i < 20; i++) { const k = sample(); mark(k, true); record(k); if (!RM) await sleep(70); }
+    busy = false;
+  }
+  T.addEventListener('input', render);
+  seg.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; T.value = b.dataset.t; render(); });
+  $('[data-act="one"]', root).addEventListener('click', one);
+  $('[data-act="many"]', root).addEventListener('click', many);
+  $('[data-act="clear"]', root).addEventListener('click', () => { counts.fill(0); total = 0; mark(-1); res.textContent = ''; render(); });
+  render();
+  const R = runner(root, 0.5);
+  if (!RM) R.onFirst = () => setTimeout(one, 500);
+})();
+
+/* ================= 8 loop ================= */
+(function loop() {
+  const root = $('#loop'), seq = $('.lp-seq', root), slot = $('.lp-slot', root), mach = $('.lp-machine', root);
+  const stats = $('.lp-stats', root), cap = $('.lp-cap', root), txt = $('.chat-a .txt', root), caret = $('.chat-a .caret', root);
+  const PROMPT = ['床前', '明月', '光', '，'], GEN = ['疑', '是', '地上', '霜', '。', '⟨结束⟩'];
+  const node = (t, i) => h('span', { class: 'lp-tok' }, tokEl(t, HUES[i % HUES.length]), h('span', { class: 'kv mono' }, 'KV'));
+  function staticState() {
+    seq.replaceChildren(...PROMPT.concat(GEN.slice(0, 5)).map((t, i) => { const n = node(t, i); n.classList.add('cached'); return n; }));
+    slot.replaceChildren(tokEl('⟨结束⟩', 0));
+    txt.textContent = '疑是地上霜。'; caret.hidden = true;
+    stats.innerHTML = '共 <b>6</b> 轮 · 第 1 轮读了 <b>4</b> 个提示词元，之后每轮只算 <b>1</b> 个';
+    cap.textContent = '抽中「结束」标记，停止生成。';
+  }
+  const R = runner(root, 0.3);
+  const play = guard(async () => {
+    for (;;) {
+      const g = R.gen;
+      seq.replaceChildren(...PROMPT.map(node)); slot.replaceChildren(); txt.textContent = ''; caret.hidden = false;
+      await R.wait(600, g);
+      for (let r = 0; r < GEN.length; r++) {
+        const nodes = Array.from(seq.children);
+        const calc = r === 0 ? nodes : [nodes[nodes.length - 1]];
+        nodes.forEach(n => n.classList.toggle('calc', calc.includes(n)));
+        stats.innerHTML = `第 <b>${r + 1}</b> 轮 · 本轮计算 <b>${calc.length}</b> 个词元 · 从缓存复用 <b>${nodes.length - calc.length}</b> 个`;
+        cap.textContent = r === 0 ? '第 1 轮（预填充）：一次读完全部提示词，并把每个词的 Key、Value 存进缓存。'
+          : `第 ${r + 1} 轮：只需为新词「${GEN[r - 1]}」做计算，前面的词直接从缓存里取。`;
+        mach.classList.add('busy');
+        await R.wait(1400, g);
+        mach.classList.remove('busy');
+        nodes.forEach(n => { n.classList.remove('calc'); n.classList.add('cached'); });
+        const t = GEN[r];
+        const o = tokEl(t, HUES[(PROMPT.length + r) % HUES.length], 'pop');
+        slot.replaceChildren(o);
+        await R.wait(700, g);
+        if (t === '⟨结束⟩') { caret.hidden = true; cap.textContent = '抽中「结束」标记，停止生成。整段回答一共跑了 6 轮。'; await R.wait(4200, g); break; }
+        await fly(o, seq.lastElementChild, t, true);
+        await R.wait(0, g);
+        slot.replaceChildren();
+        seq.append(node(t, PROMPT.length + r));
+        txt.textContent += t;
+        await R.wait(450, g);
+      }
+    }
+  });
+  $('[data-act="replay"]', root).addEventListener('click', () => { R.gen++; play(); });
+  staticState();
+  if (!RM) R.onFirst = play;
+})();
+
+/* ================= summary pipeline ================= */
+(function pipe() {
+  const root = $('#pipe'), nodes = $$('.pn', root), lab = $('.pg-lab', root);
+  const on = n => nodes.forEach(x => x.classList.toggle('on', x === n));
+  const R = runner(root, 0.4);
+  const play = guard(async () => {
+    const g = R.gen;
+    for (;;) {
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i];
+        if (n.dataset.loop === 'a') {
+          for (const L of ['第 1 层', '第 2 层', '第 3 层', '…… 第 N 层']) {
+            lab.textContent = L;
+            for (const m of [n, nodes[i + 1]]) { on(m); await R.wait(480, g); }
+          }
+          lab.textContent = '重复几十层';
+          i++;
+          continue;
+        }
+        on(n); await R.wait(650, g);
+      }
+      on(null); await R.wait(1400, g);
+    }
+  });
+  if (!RM) R.onFirst = play;
+})();
+})();
+</script>
+</body>
+</html>
