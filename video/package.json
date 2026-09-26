@@ -1,0 +1,13 @@
+{
+  "name": "transformer-explainer-video",
+  "private": true,
+  "description": "Frame-by-frame renderer for the Transformer inference explainer video",
+  "scripts": {
+    "render": "node render.js 4 30"
+  },
+  "dependencies": {
+    "@fontsource/jetbrains-mono": "^5.0.0",
+    "@fontsource/noto-sans-sc": "^5.0.0",
+    "@fontsource/noto-serif-sc": "^5.0.0"
+  }
+}

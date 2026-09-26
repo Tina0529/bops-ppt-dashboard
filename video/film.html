@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>大模型推理动画</title>
+<link rel="stylesheet" href="node_modules/@fontsource/noto-sans-sc/400.css">
+<link rel="stylesheet" href="node_modules/@fontsource/noto-sans-sc/500.css">
+<link rel="stylesheet" href="node_modules/@fontsource/noto-sans-sc/700.css">
+<link rel="stylesheet" href="node_modules/@fontsource/noto-serif-sc/700.css">
+<link rel="stylesheet" href="node_modules/@fontsource/noto-serif-sc/900.css">
+<link rel="stylesheet" href="node_modules/@fontsource/jetbrains-mono/400.css">
+<link rel="stylesheet" href="node_modules/@fontsource/jetbrains-mono/600.css">
+<style>
+:root{
+  --bg:#0B0F19; --paper:#141A28; --paper-2:#0F1522; --ink:#E8EBF2; --ink-2:#C4CAD7; --muted:#8B94A8;
+  --line:#232C3F; --line-2:#36425C; --vec:#95A2FF; --vec-soft:#1C2245; --att:#FFB04A; --att-soft:#36260F;
+  --chip-s:48%; --chip-bg-l:21%; --chip-bd-l:40%; --chip-fg-l:87%; --chip-solid-l:58%;
+}
+html,body{margin:0;background:#000;overflow:hidden}
+#stage{position:relative;width:1920px;height:1080px;overflow:hidden;color:var(--ink);font-family:"Noto Sans SC",sans-serif;
+  background:radial-gradient(1400px 800px at 78% -12%,#18223D 0%,transparent 62%),radial-gradient(1100px 700px at -8% 112%,#1B1629 0%,transparent 60%),var(--bg)}
+.scene{position:absolute;inset:0;visibility:hidden}
+.abs{position:absolute}
+.serif{font-family:"Noto Serif SC",serif}
+.mono{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.amber{color:var(--att)}
+.tok{--h:212;display:inline-flex;align-items:center;justify-content:center;padding:.1em .42em;border-radius:.2em;font-weight:700;line-height:1.3;white-space:nowrap;
+  background:hsl(var(--h) var(--chip-s) var(--chip-bg-l));border:2px solid hsl(var(--h) var(--chip-s) var(--chip-bd-l));color:hsl(var(--h) var(--chip-s) var(--chip-fg-l))}
+.tok.punct{background:#121827;border-color:var(--line-2);color:var(--muted)}
+.card{background:var(--paper);border:1.5px solid var(--line);border-radius:22px}
+.strip{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:2px;border-radius:5px;overflow:hidden}
+.strip i{display:block}
+.track{background:var(--paper-2);border:1.5px solid var(--line-2);border-radius:7px;overflow:hidden}
+.fill{display:block;height:100%;width:0;background:var(--vec);border-radius:5px}
+.caret{display:inline-block;width:5px;height:1em;background:var(--att);vertical-align:-.12em;margin-left:6px}
+
+#chrome{position:absolute;left:0;top:0;right:0;height:170px;z-index:5}
+#c-step{position:absolute;left:120px;top:58px;font-size:24px;color:var(--att);letter-spacing:.06em}
+#c-title{position:absolute;left:120px;top:92px;font-size:50px;font-weight:900}
+#c-dots{position:absolute;right:120px;top:62px;display:flex;gap:10px}
+#c-dots span{font-size:20px;padding:5px 14px;border-radius:999px;border:1.5px solid var(--line-2);color:var(--muted);background:rgba(20,26,40,.6)}
+#c-dots span.on{background:var(--att);border-color:var(--att);color:#241400;font-weight:700}
+#c-dots span.done{color:var(--ink-2);border-color:#4A5775}
+#sub{position:absolute;left:0;right:0;bottom:52px;text-align:center;z-index:10}
+#sub span{display:inline-block;max-width:1640px;font-size:40px;line-height:1.5;padding:10px 30px;border-radius:14px;background:rgba(4,7,13,.82);color:#F5F7FB;letter-spacing:.02em}
+#fly{position:absolute;left:0;top:0;z-index:8;padding:.05em .38em;border-radius:.2em;background:var(--att);color:#241400;font-family:"Noto Serif SC",serif;font-weight:700;white-space:nowrap;opacity:0;box-shadow:0 14px 34px rgba(0,0,0,.45)}
+#fade{position:absolute;inset:0;background:#000;z-index:20;pointer-events:none}
+
+/* hook */
+.bar-row{display:grid;grid-template-columns:190px 640px 110px;gap:22px;align-items:center;height:70px;font-size:40px}
+.bar-row .lab{text-align:right;white-space:nowrap}
+.bar-row .track{height:30px}
+.bar-row .val{font-size:30px;color:var(--muted)}
+.bar-row.pick .lab{color:var(--att);font-weight:700}
+.bar-row.pick .fill{background:var(--att)}
+
+/* tokenizer */
+.tk{position:relative;display:inline-flex;flex-direction:column;align-items:center;line-height:1.25}
+.tk .bgbox{position:absolute;inset:0;border-radius:18px;background:hsl(var(--h) var(--chip-s) var(--chip-bg-l));border:2px solid hsl(var(--h) var(--chip-s) var(--chip-bd-l))}
+.tk .tx{position:relative}
+.tk .tid{position:relative;font-family:"JetBrains Mono",monospace;font-size:26px;font-weight:400;color:hsl(var(--h) 60% 78%)}
+
+/* map */
+.map-bg{fill:#0E1422;stroke:var(--line);stroke-width:1}
+.pt text{font-size:17px;fill:var(--ink);font-family:"Noto Sans SC",sans-serif;font-weight:500}
+.cl{font-size:13px;fill:var(--muted);letter-spacing:.3em;font-family:"Noto Sans SC",sans-serif}
+.ring{fill:none;stroke:var(--att);stroke-width:2.5}
+
+/* attention */
+.at{display:flex;flex-direction:column;align-items:center;gap:8px}
+.at .tok{font-size:38px;padding:6px 14px}
+.at .w{font-size:21px;color:var(--muted);height:28px}
+.arc{fill:none;stroke:var(--att);stroke-linecap:round}
+.pr{display:grid;grid-template-columns:110px 520px 90px;gap:20px;align-items:center;height:52px;font-size:32px}
+.pr .track{height:24px}
+.pr .val{font-size:26px;color:var(--muted)}
+.pr.pick .fill{background:var(--att)}
+.pr.pick .lab{color:var(--att);font-weight:700}
+
+/* qkv */
+.qrow{display:grid;grid-template-columns:120px 330px 400px 120px;gap:22px;align-items:center;height:66px;font-size:30px}
+.qrow .tok{font-size:30px;padding:3px 12px;justify-self:start}
+.qrow .key{font-size:27px;color:var(--ink-2);white-space:nowrap}
+.qrow .key b{font-family:"JetBrains Mono",monospace;font-size:18px;color:var(--vec);margin-right:8px;font-weight:600}
+.qrow .track{height:24px}
+.qrow .num{font-size:25px;color:var(--muted);text-align:right}
+.steps div{font-size:32px;color:var(--muted);padding:10px 22px;border-radius:14px;margin-bottom:10px}
+.steps div.on{background:var(--att-soft);color:var(--ink);box-shadow:inset 0 0 0 2px var(--att)}
+
+/* ffn */
+.wire{stroke:var(--line-2);stroke-width:.5;opacity:.45;fill:none}
+.hot{stroke:var(--att);stroke-width:1.1;opacity:.55;fill:none}
+.nr{stroke:var(--line-2);stroke-width:1.6}
+.nl{font-size:12px;font-family:"JetBrains Mono",monospace;fill:#241400;text-anchor:middle;dominant-baseline:central;font-weight:600}
+.cell{stroke:var(--line-2);stroke-width:1}
+.fcap{font-size:13px;fill:var(--muted);font-family:"Noto Sans SC",sans-serif;text-anchor:middle}
+
+/* tower */
+.trow{display:grid;grid-template-columns:120px repeat(7,1fr);gap:10px;align-items:center;height:52px;padding:0 12px;border-radius:12px}
+.trow .lab{font-size:22px;color:var(--muted);white-space:nowrap}
+.tcell{position:relative;height:30px;border-radius:7px;border:1.5px dashed var(--line-2)}
+.tcell i{position:absolute;inset:-1.5px;border-radius:7px}
+.tcap{font-size:27px;color:var(--muted);padding:9px 18px;border-radius:12px;line-height:1.5;margin-bottom:6px}
+.tcap b{font-family:"JetBrains Mono",monospace;font-size:20px;color:var(--ink-2);margin-right:12px}
+.tcap.on{background:var(--att-soft);color:var(--ink)}
+
+/* sampling */
+.srow{display:grid;grid-template-columns:130px 90px 560px 110px 60px;gap:18px;align-items:center;height:54px;font-size:32px;padding:0 14px;border-radius:12px}
+.srow .lg{font-size:24px;color:var(--muted);text-align:right}
+.srow .track{height:24px}
+.srow .pc{font-size:24px;text-align:right}
+.srow.hi{background:var(--att-soft)}
+.srow.win{background:var(--att-soft);box-shadow:inset 0 0 0 2.5px var(--att)}
+.srow.win .fill{background:var(--att)}
+
+/* loop */
+.lnode{display:inline-flex;flex-direction:column;align-items:center;gap:8px}
+.lnode .tok{font-size:50px;font-family:"Noto Serif SC",serif;padding:2px 16px}
+.lnode .kv{font-family:"JetBrains Mono",monospace;font-size:17px;padding:1px 8px;border-radius:6px;border:1.5px solid var(--line-2);color:var(--muted)}
+.bubble{padding:18px 26px;border-radius:24px;font-size:40px}
+.bubble .who{display:block;font-size:20px;color:var(--muted);letter-spacing:.12em;margin-bottom:4px}
+
+/* recap */
+.pn{display:flex;flex-direction:column;gap:4px;padding:16px 20px;box-sizing:border-box;border-radius:18px;border:1.5px solid var(--line-2);background:var(--paper);min-width:132px;white-space:nowrap}
+.pn small{font-family:"JetBrains Mono",monospace;font-size:18px;color:var(--muted)}
+.pn b{font-family:"Noto Serif SC",serif;font-size:34px}
+.pn em{font-style:normal;font-size:21px;color:var(--muted)}
+.pn.on{background:var(--att-soft);border-color:var(--att)}
+.pa{align-self:center;font-size:30px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="chrome"><div id="c-step"></div><div id="c-title" class="serif"></div><div id="c-dots"></div></div>
+  <div id="scenes"></div>
+  <div id="fly"></div>
+  <div id="sub"><span></span></div>
+  <div id="fade"></div>
+</div>
+<script>
+'use strict';
+/* ---------------- utils ---------------- */
+const clamp = (x, a = 0, b = 1) => x < a ? a : x > b ? b : x;
+const lin = (t, a, b) => clamp((t - a) / (b - a));
+const io = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const eo = x => 1 - Math.pow(1 - x, 3);
+const bk = x => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const E = (t, a, b) => io(lin(t, a, b));
+const EO = (t, a, b) => eo(lin(t, a, b));
+const lerp = (a, b, k) => a + (b - a) * k;
+const win = (t, a, b, f = .35) => Math.min(E(t, a, a + f), 1 - E(t, b - f, b));
+const NS = 'http://www.w3.org/2000/svg';
+const HUES = [212, 28, 152, 330, 262, 188, 46, 4, 120, 292, 236, 16, 170, 312];
+const PUNCT = /^[，。！？、⟨]/;
+function hash(str) { let x = 2166136261; for (const ch of str) { x ^= ch.codePointAt(0); x = Math.imul(x, 16777619); } return x >>> 0; }
+function rng(seed) { let s = (seed >>> 0) || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
+const tokenId = t => 100 + hash(t) % 99900;
+function vecFor(word, n, base, noise) { const r = rng(hash(word) * 7 + 3); return Array.from({ length: n }, (_, i) => (base ? base[i] : 0) + (r() * 2 - 1) * (noise == null ? 1.1 : noise)); }
+function cellColor(v) { const t = Math.min(1, Math.abs(v) / 1.3); const p = Math.round(8 + t * 84); return `color-mix(in srgb, var(${v >= 0 ? '--att' : '--vec'}) ${p}%, var(--paper-2))`; }
+const solid = h => `hsl(${h} var(--chip-s) var(--chip-solid-l))`;
+function softmax(xs, T) { const m = Math.max(...xs); const e = xs.map(x => Math.exp((x - m) / (T || 1))); const s = e.reduce((a, b) => a + b, 0); return e.map(x => x / s); }
+const fmtP = p => p >= 10 ? Math.round(p) + '%' : p >= 0.1 ? p.toFixed(1) + '%' : '<0.1%';
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+function tokHTML(t, h, extra = '', style = '') { return `<span class="tok${PUNCT.test(t) ? ' punct' : ''} ${extra}" style="--h:${h};${style}">${esc(t)}</span>`; }
+function stripHTML(n, style) { return `<span class="strip" style="${style}">${'<i></i>'.repeat(n)}</span>`; }
+function paintStrip(el, vals) { vals.forEach((v, i) => { const c = el.children[i]; if (c) c.style.background = cellColor(v); }); }
+function sv(tag, attrs) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+const R = el => el.getBoundingClientRect();
+const op = (el, v) => { el.style.opacity = v.toFixed(3); };
+const flyEl = document.getElementById('fly');
+function flyAt(text, fromRect, toRect, k, fontSize, toMode) {
+  flyEl.textContent = text; flyEl.style.fontSize = fontSize + 'px';
+  const fw = flyEl.offsetWidth, fh = flyEl.offsetHeight;
+  const x0 = fromRect.left + fromRect.width / 2 - fw / 2, y0 = fromRect.top + fromRect.height / 2 - fh / 2;
+  const x1 = toMode === 'left' ? toRect.left : toRect.left + toRect.width / 2 - fw / 2, y1 = toRect.top + toRect.height / 2 - fh / 2;
+  const e = io(k);
+  const x = lerp(x0, x1, e), y = lerp(y0, y1, e) - Math.sin(Math.PI * e) * 110;
+  flyEl.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) scale(${(1 + .12 * Math.sin(Math.PI * e)).toFixed(3)})`;
+  flyEl.style.opacity = 1;
+}
+
+/* ---------------- scenes ---------------- */
+const SCENES = [];
+const scenesEl = document.getElementById('scenes');
+function scene(t0, t1, chrome, build, draw) {
+  const el = document.createElement('div'); el.className = 'scene'; scenesEl.append(el);
+  const s = { t0, t1, chrome, el, draw };
+  build(el, s);
+  SCENES.push(s);
+}
+
+/* 0 · title */
+scene(0, 7, null, el => {
+  el.innerHTML = `
+  <div class="abs serif" data-k="t1" style="left:0;right:0;top:280px;text-align:center;font-size:94px;font-weight:900;line-height:1.3">大模型是怎样一个词一个词<br><span class="amber">「想」</span>出答案的</div>
+  <div class="abs" data-k="t2" style="left:0;right:0;top:580px;text-align:center;font-size:36px;color:var(--muted);letter-spacing:.14em">Transformer 推理原理 · 动画图解</div>
+  <div class="abs" data-k="t3" style="left:0;right:0;top:700px;display:flex;justify-content:center;gap:16px;font-size:44px;font-family:'Noto Serif SC',serif">
+    ${['今天', '天气', '很好', '，', '我们', '一起', '去'].map((t, i) => tokHTML(t, HUES[i])).join('')}
+    <span class="tok" style="--h:36;border-style:dashed;color:var(--att);background:transparent">？</span>
+  </div>`;
+}, (lt, t, s) => {
+  const [t1, t2, t3] = ['t1', 't2', 't3'].map(k => s.el.querySelector(`[data-k=${k}]`));
+  const a = E(lt, .3, 1.5); op(t1, a); t1.style.transform = `translateY(${(1 - a) * 36}px)`;
+  op(t2, E(lt, 1.1, 2.1));
+  Array.from(t3.children).forEach((c, i) => {
+    const k = lin(lt, 2.1 + i * .16, 2.5 + i * .16);
+    op(c, k); c.style.transform = `translateY(${(1 - eo(k)) * 24}px) scale(${i === 7 && lt > 4 ? 1 + .08 * Math.sin((lt - 4) * 6) : 1})`;
+  });
+});
+
+/* 1 · hook: next-word guessing machine */
+const HOOK = [
+  { at: 12, c: [['公园', 38], ['爬山', 21], ['海边', 14], ['郊游', 11], ['逛街', 8]], pick: 0 },
+  { at: 17, c: [['散步', 41], ['玩', 22], ['野餐', 17], ['吧', 9], ['看花', 6]], pick: 2 },
+  { at: 22.5, c: [['吧', 46], ['。', 30], ['，', 12], ['好不好', 7], ['呀', 3]], pick: 0 },
+  { at: 26.5, c: [['！', 52], ['。', 33], ['～', 9], ['？', 3], ['…', 2]], pick: 0 },
+  { at: 29.5, c: [['⟨结束⟩', 91], ['你', 3], ['我们', 2], ['然后', 2], ['记得', 1]], pick: 0 }
+];
+scene(7, 33, { step: '开场', title: '大模型只做一件事：猜下一个词', dot: 0 }, el => {
+  el.innerHTML = `
+  <div class="abs serif" data-k="sent" style="left:160px;top:250px;font-size:68px;font-weight:700">
+    <span>今天天气很好，我们一起去</span><span data-k="gen">${HOOK.slice(0, 4).map(r => `<span class="amber" style="display:inline-block">${r.c[r.pick][0]}</span>`).join('')}</span><span class="caret" data-k="caret"></span>
+  </div>
+  <div class="abs" data-k="bars" style="left:120px;top:430px">${'<div class="bar-row"><span class="lab"></span><span class="track"><span class="fill"></span></span><span class="val mono"></span></div>'.repeat(5)}</div>
+  <div class="abs" style="left:1250px;top:430px;width:560px">
+    <div class="serif" data-k="round" style="font-size:58px;font-weight:900"></div>
+    <div data-k="status" style="font-size:32px;line-height:1.55;color:var(--ink-2);margin-top:14px"></div>
+    <div data-k="note" style="font-size:28px;line-height:1.55;color:var(--att);margin-top:18px"></div>
+  </div>`;
+}, (lt, t, s) => {
+  const q = k => s.el.querySelector(`[data-k=${k}]`);
+  const gen = q('gen'), caret = q('caret'), bars = q('bars'), round = q('round'), status = q('status'), note = q('note');
+  op(q('sent'), E(lt, .2, 1));
+  let k = -1; HOOK.forEach((r, i) => { if (t >= r.at) k = i; });
+  Array.from(gen.children).forEach((sp, i) => {
+    const ta = HOOK[i].at + 2.6; const a = lin(t, ta, ta + .45);
+    sp.style.display = t >= ta ? 'inline-block' : 'none';
+    sp.style.transform = `scale(${lerp(.3, 1, bk(a)).toFixed(3)})`;
+  });
+  const ended = t >= HOOK[4].at + 2.2;
+  op(caret, !ended && Math.floor(t * 2.2) % 2 === 0 ? 1 : 0);
+  const rows = Array.from(bars.children);
+  if (k < 0) {
+    rows.forEach(r => op(r, 0));
+    round.textContent = '准备'; status.textContent = '模型读完你输入的整句话，准备猜下一个词……'; note.textContent = '';
+    op(round, E(lt, .8, 1.6)); op(status, E(lt, 1, 1.8));
+    return;
+  }
+  op(round, 1); op(status, 1);
+  const rd = HOOK[k], lt2 = t - rd.at;
+  rows.forEach((r, i) => {
+    op(r, 1);
+    const [lab, , val] = r.children;
+    lab.textContent = rd.c[i][0]; val.textContent = rd.c[i][1] + '%';
+    r.querySelector('.fill').style.width = (rd.c[i][1] * EO(lt2, .1 + i * .08, .9 + i * .08)).toFixed(2) + '%';
+    r.classList.toggle('pick', i === rd.pick && lt2 >= 1.5);
+  });
+  round.textContent = `第 ${k + 1} 轮`;
+  const [pt, pp] = rd.c[rd.pick];
+  const end = pt === '⟨结束⟩';
+  if (lt2 < 1.5) { status.textContent = '读完整句，给候选词打分（只列前 5 名）'; note.textContent = ''; }
+  else {
+    status.textContent = end ? '抽中「结束」标记，这句话写完了。' : `按概率抽签，抽中「${pt}」（${pp}%）`;
+    note.textContent = rd.pick ? '不是第一名也可能被抽中' : '';
+    op(note, E(lt2, 1.8, 2.3));
+  }
+  if (!end && lt2 >= 1.9 && lt2 < 2.6) flyAt(pt, R(rows[rd.pick].children[0]), R(caret), lin(lt2, 1.9, 2.6), 68, 'left');
+});
+
+/* 2 · roadmap */
+const STEPS = [['切词', '剪成词元'], ['向量', '意思坐标'], ['位置', '记住顺序'], ['注意力', '回头看上下文'], ['思考', '查一查记忆'], ['叠层', '反复几十层'], ['选词', '打分和抽签'], ['循环', '接回去再来']];
+scene(33, 41, { step: '全景', title: '拆开这台「猜词机」：8 个步骤', dot: 0 }, el => {
+  el.innerHTML = `
+  <div class="abs" style="left:120px;top:300px;font-size:30px;color:var(--muted)" data-k="in">输入：一句话 ↓</div>
+  <div class="abs" style="left:120px;top:370px;display:flex;gap:16px" data-k="row">
+    ${STEPS.map((s, i) => `<div class="card" style="width:196px;height:230px;padding:22px 20px;box-sizing:border-box">
+      <div class="mono amber" style="font-size:30px">${i + 1}</div>
+      <div class="serif" style="font-size:40px;font-weight:900;margin-top:10px">${s[0]}</div>
+      <div style="font-size:24px;color:var(--muted);margin-top:8px;line-height:1.4">${s[1]}</div></div>`).join('')}
+  </div>
+  <div class="abs" style="right:120px;top:640px;font-size:30px;color:var(--att)" data-k="out">↓ 输出：下一个词</div>`;
+}, (lt, t, s) => {
+  const q = k => s.el.querySelector(`[data-k=${k}]`);
+  op(q('in'), E(lt, .3, 1));
+  Array.from(q('row').children).forEach((c, i) => { const a = E(lt, .8 + i * .45, 1.3 + i * .45); op(c, a); c.style.transform = `translateY(${(1 - a) * 40}px)`; });
+  op(q('out'), E(lt, 4.8, 5.6));
+});
+
+/* 3 · tokenize */
+const TK1 = ['我', '爱', '吃', '苹果', '派'], TK2 = ['un', 'believ', 'able'];
+scene(41, 60, { step: '第 1 步 / 共 8 步', title: '切词：把句子剪成「词元」', dot: 1 }, el => {
+  const mk = (toks, fs) => toks.map((t, i) => `<span class="tk" style="--h:${HUES[i]};font-size:${fs}px"><span class="bgbox"></span><span class="tx">${t}</span><span class="tid">#${tokenId(t)}</span></span>`).join('');
+  el.innerHTML = `
+  <div class="abs serif" data-k="r1" style="left:160px;top:240px;display:flex;font-weight:700">${mk(TK1, 104)}</div>
+  <div class="abs" data-k="knife" style="left:160px;top:236px;width:4px;height:200px;background:var(--att);box-shadow:0 0 22px var(--att)"></div>
+  <div class="abs" data-k="arr" style="left:160px;top:500px;font-size:32px"><span class="muted">模型实际读到的：</span><span class="mono" style="color:var(--vec)" data-k="ids"></span></div>
+  <div class="abs" data-k="lab2" style="left:160px;top:610px;font-size:28px;color:var(--muted)">生僻的词会被拆开：</div>
+  <div class="abs" data-k="r2" style="left:160px;top:660px;display:flex;font-family:'JetBrains Mono',monospace;font-weight:600">${mk(TK2, 72)}</div>
+  <div class="abs card" data-k="badge" style="left:1180px;top:640px;width:620px;padding:28px 34px;box-sizing:border-box">
+    <div style="font-size:26px;color:var(--muted)">模型的「词典」</div>
+    <div class="serif" style="font-size:46px;font-weight:900;margin-top:6px">约 <span class="amber">10 万～20 万</span> 个词元</div>
+  </div>`;
+}, (lt, t, s) => {
+  const q = k => s.el.querySelector(`[data-k=${k}]`);
+  const split = (row, t0, tId) => Array.from(row.children).forEach((c, i) => {
+    const p = E(t, t0 + i * .3, t0 + .6 + i * .3);
+    c.style.margin = `0 ${(p * 12).toFixed(1)}px`; c.style.padding = `${(p * 6).toFixed(1)}px ${(p * 26).toFixed(1)}px ${(p * 8).toFixed(1)}px`;
+    op(c.children[0], p);
+    const ip = E(t, tId + i * .25, tId + .5 + i * .25); op(c.children[2], ip);
+    c.children[1].style.color = p > .5 ? `hsl(${HUES[i]} 60% 88%)` : 'var(--ink)';
+  });
+  const r1 = q('r1'); op(r1, E(lt, .3, 1));
+  split(r1, 45, 47.6);
+  const kn = q('knife'), rr = R(r1);
+  const kp = lin(t, 43.9, 45);
+  kn.style.left = (rr.left + (rr.width) * kp).toFixed(1) + 'px'; op(kn, kp > 0 && kp < 1 ? 1 : 0);
+  const ids = '[' + TK1.map(tokenId).join(', ') + ']';
+  q('ids').textContent = ids.slice(0, Math.floor(ids.length * lin(t, 50, 52.6)));
+  op(q('arr'), E(t, 49.7, 50.2));
+  op(q('lab2'), E(t, 54.3, 55)); op(q('r2'), E(t, 54.5, 55.2));
+  split(q('r2'), 55.6, 57);
+  const b = E(t, 54.6, 55.5); op(q('badge'), b); q('badge').style.transform = `translateY(${(1 - b) * 30}px)`;
+});
+
+/* 4 · embedding */
+const MAPP = [['猫', 70, 90, '动物'], ['狗', 150, 80, '动物'], ['兔子', 80, 135, '动物'], ['老虎', 160, 128, '动物'],
+  ['苹果', 420, 86, '水果'], ['香蕉', 500, 80, '水果'], ['西瓜', 430, 130, '水果'], ['葡萄', 510, 126, '水果'],
+  ['跑', 265, 192, '动作'], ['走', 330, 186, '动作'], ['跳', 292, 232, '动作'],
+  ['北京', 70, 292, '城市'], ['东京', 150, 284, '城市'], ['巴黎', 80, 334, '城市'], ['伦敦', 160, 328, '城市'],
+  ['国王', 400, 256, '人物'], ['女王', 494, 260, '人物'], ['男人', 400, 328, '人物'], ['女人', 500, 328, '人物']];
+const CLUS = { 动物: [40, 42, 28], 水果: [392, 42, 120], 动作: [236, 160, 292], 城市: [40, 252, 212], 人物: [372, 222, 330] };
+const midx = w => MAPP.findIndex(p => p[0] === w);
+const BASE = {}; for (const k in CLUS) BASE[k] = vecFor('cluster-' + k, 24, null, 1.2);
+const MV = MAPP.map(([w, , , c]) => { const v = vecFor(w, 24, BASE[c], .4); if (c === '人物') { const f = w.startsWith('女'), r = w === '国王' || w === '女王'; for (let d = 0; d < 3; d++) v[d] += f ? -1.2 : 1.2; for (let d = 3; d < 5; d++) v[d] += r ? 1.2 : -.6; } return v; });
+function cos(a, b) { let d = 0, na = 0, nb = 0; for (let i = 0; i < a.length; i++) { d += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; } return d / Math.sqrt(na * nb); }
+const START = (() => { const r = rng(99); return MAPP.map(() => [30 + r() * 540, 30 + r() * 300]); })();
+scene(60, 90, { step: '第 2 步 / 共 8 步', title: '向量：给每个词一个「意思坐标」', dot: 2 }, (el, s) => {
+  const simA = midx('猫'), simB = midx('狗');
+  el.innerHTML = `
+  <div class="abs" data-k="head" style="left:120px;top:240px;display:flex;align-items:center;gap:22px">
+    <span class="serif" style="font-size:64px">${tokHTML('猫', 28)}</span><span class="mono muted" style="font-size:30px">#${tokenId('猫')}</span></div>
+  <div class="abs" data-k="arrow" style="left:120px;top:350px;font-size:28px;color:var(--muted)">↓ 换成一长串数字（向量）</div>
+  <div class="abs" data-k="cells" style="left:120px;top:410px;display:grid;grid-template-columns:repeat(8,52px);gap:6px">${'<i style="display:block;height:44px;border-radius:6px"></i>'.repeat(24)}</div>
+  <div class="abs" data-k="cellcap" style="left:120px;top:570px;font-size:24px;color:var(--muted);width:600px;line-height:1.5">这里只画了 24 个数字，真实模型里有几千个。<br>橙色为正、蓝色为负，颜色越深，数值越大。</div>
+  <div class="abs" data-k="sim" style="left:120px;top:410px;width:600px">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px"><span class="serif" style="font-size:40px">${tokHTML('猫', 28)}</span>${stripHTML(24, 'flex:1;height:34px')}</div>
+    <div style="display:flex;align-items:center;gap:16px"><span class="serif" style="font-size:40px">${tokHTML('狗', 28)}</span>${stripHTML(24, 'flex:1;height:34px')}</div>
+    <div style="font-size:32px;margin-top:26px">相似度 <b class="mono amber" style="font-size:44px">${Math.round(Math.max(0, cos(MV[simA], MV[simB])) * 100)}%</b><span class="muted" style="font-size:26px;margin-left:14px">色条长得很像</span></div>
+  </div>
+  <div class="abs serif" data-k="formula" style="left:120px;top:430px;font-size:50px;font-weight:700;line-height:1.6">国王 − 男人 + 女人<br>≈ <span data-k="ans" class="amber">？</span></div>
+  <svg class="abs" data-k="map" style="left:800px;top:230px" width="1000" height="600" viewBox="0 0 600 360"></svg>
+  <div class="abs" data-k="prog" style="left:800px;top:846px;font-size:24px;color:var(--muted)"></div>`;
+  const svg = el.querySelector('[data-k=map]');
+  svg.append(sv('rect', { class: 'map-bg', x: 1, y: 1, width: 598, height: 358, rx: 10 }));
+  const defs = sv('defs', {});
+  [['mv', 'var(--vec)'], ['ma', 'var(--att)']].forEach(([id, c]) => { const m = sv('marker', { id, viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto' }); const p = sv('path', { d: 'M0,0 L10,5 L0,10 z' }); p.style.fill = c; m.append(p); defs.append(m); });
+  svg.append(defs);
+  s.cl = Object.entries(CLUS).map(([k, [x, y]]) => { const t = sv('text', { class: 'cl', x, y }); t.textContent = k; svg.append(t); return t; });
+  s.rings = MAPP.map(() => { const r = sv('circle', { class: 'ring', r: 15 }); svg.append(r); return r; });
+  s.l1 = sv('line', { 'stroke-width': 3, 'marker-end': 'url(#mv)', 'stroke-dasharray': '7 5' }); s.l1.style.stroke = 'var(--vec)';
+  s.l2 = sv('line', { 'stroke-width': 3, 'marker-end': 'url(#ma)', 'stroke-dasharray': '7 5' }); s.l2.style.stroke = 'var(--att)';
+  svg.append(s.l1, s.l2);
+  s.pts = MAPP.map(([w, , , c]) => { const g = sv('g', { class: 'pt' }); const ci = sv('circle', { r: 7 }); ci.style.fill = solid(CLUS[c][2]); ci.style.stroke = 'var(--bg)'; ci.style.strokeWidth = 2; const t = sv('text', { x: 11, y: 6 }); t.textContent = w; g.append(ci, t); svg.append(g); return g; });
+  el.querySelectorAll('[data-k=cells] i').forEach((c, i) => { c.style.background = cellColor(MV[simA][i]); });
+  const strips = el.querySelectorAll('[data-k=sim] .strip');
+  paintStrip(strips[0], MV[simA]); paintStrip(strips[1], MV[simB]);
+}, (lt, t, s) => {
+  const q = k => s.el.querySelector(`[data-k=${k}]`);
+  op(q('head'), E(t, 60.3, 61) * (1 - E(t, 73.4, 74)));
+  op(q('arrow'), E(t, 61, 61.7) * (1 - E(t, 73.4, 74)));
+  q('cells').querySelectorAll('i').forEach((c, i) => op(c, E(t, 61.7 + i * .06, 62.1 + i * .06) * (1 - E(t, 73.4, 74))));
+  op(q('cellcap'), E(t, 63.2, 64) * (1 - E(t, 73.4, 74)));
+  op(q('sim'), win(t, 74, 79.6, .5));
+  const fo = E(t, 80, 80.8); op(q('formula'), fo);
+  q('ans').textContent = t >= 86.6 ? '女王' : '？';
+  q('ans').style.transform = `scale(${t >= 86.6 ? lerp(1.5, 1, eo(lin(t, 86.6, 87.2))) : 1})`; q('ans').style.display = 'inline-block';
+  op(q('map'), E(t, 64, 64.8));
+  MAPP.forEach((p, i) => {
+    const e = EO(t, 66 + i * .12, 71 + i * .12);
+    const x = lerp(START[i][0], p[1], e), y = lerp(START[i][1], p[2], e);
+    s.pts[i].setAttribute('transform', `translate(${x.toFixed(2)},${y.toFixed(2)})`);
+    s.rings[i].setAttribute('cx', x); s.rings[i].setAttribute('cy', y);
+  });
+  const L = lin(t, 66, 73.3);
+  q('prog').textContent = t < 66 ? '训练前：词的位置是随机的' : L < 1 ? `训练中……读过的文本越多，位置越准（${Math.round(L * 100)}%）` : '训练后：意思相近的词，自己聚到了一起';
+  s.cl.forEach(c => op(c, E(t, 72, 73.5)));
+  const ringOn = { 猫: [74, 79.4], 狗: [74, 79.4], 苹果: [75.3, 79.4], 香蕉: [75.3, 79.4], 北京: [76.6, 79.4], 东京: [76.6, 79.4], 男人: [80, 84], 女人: [80, 84], 国王: [84, 90], 女王: [86.6, 90] };
+  MAPP.forEach(([w], i) => { const r = ringOn[w]; const a = r ? win(t, r[0], r[1], .3) : 0; op(s.rings[i], a); s.rings[i].setAttribute('r', (15 + (w === '女王' && t > 86.6 ? 6 * Math.max(0, Math.sin((t - 86.6) * 5)) : 0)).toFixed(1)); });
+  const M = MAPP[midx('男人')], W = MAPP[midx('女人')], K = MAPP[midx('国王')], dx = W[1] - M[1], dy = W[2] - M[2];
+  const k1 = E(t, 80.4, 82.2), k2 = E(t, 84.4, 86.4);
+  const setL = (l, x, y, k) => { l.setAttribute('x1', x); l.setAttribute('y1', y); l.setAttribute('x2', x + dx * k * .93); l.setAttribute('y2', y + dy * k); op(l, k > 0 ? 1 : 0); };
+  setL(s.l1, M[1] + 8, M[2], k1); setL(s.l2, K[1] + 8, K[2], k2);
+});
+
+/* 5 · position */
+const PW = { 狗: vecFor('pos-狗', 12, null, .9), 咬: vecFor('pos-咬', 12, null, .9), 人: vecFor('pos-人', 12, null, .9) };
+const PH = { 狗: 28, 咬: 262, 人: 152 };
+const PV = p => Array.from({ length: 12 }, (_, d) => Math.sin((p + 1) / Math.pow(1.8, Math.floor(d / 2)) + (d % 2 ? 1.3 : 0)) * 1.05);
+scene(90, 108, { step: '第 3 步 / 共 8 步', title: '位置：记住谁在前、谁在后', dot: 3 }, el => {
+  const row = (ws, top, lab, sub) => `
+  <div class="abs" style="left:120px;top:${top}px;width:280px"><div class="serif" style="font-size:40px;font-weight:900">${lab}</div><div style="font-size:24px;color:var(--muted)">${sub}</div></div>
+  <div class="abs prow" style="left:420px;top:${top - 16}px;display:flex;gap:26px">
+    ${ws.map((w, p) => `<div class="pcell" style="width:236px;padding:14px;box-sizing:border-box;border-radius:18px;border:3px solid transparent">
+      <div style="display:flex;align-items:center;gap:12px"><span class="serif" style="font-size:76px">${tokHTML(w, PH[w])}</span><span class="stamp amber mono" style="font-size:40px;font-weight:600;display:inline-block">${'①②③'[p]}</span></div>
+      ${stripHTML(12, 'height:26px;margin-top:14px')}</div>`).join('')}
+  </div>`;
+  el.innerHTML = row(['狗', '咬', '人'], 270, '句子 A', '狗是咬人的一方') + row(['人', '咬', '狗'], 500, '句子 B', '人是咬狗的一方') + `
+  <div class="abs" data-k="bag" style="left:120px;top:760px;font-size:34px;display:flex;align-items:center;gap:26px">
+    <span class="muted">模型收到的：</span><span class="card" style="padding:10px 26px">｛狗、咬、人｝</span><span class="serif" style="font-size:56px;color:#FF7A59">=</span><span class="card" style="padding:10px 26px">｛狗、咬、人｝</span></div>
+  <div class="abs" data-k="bag2" style="left:120px;top:760px;font-size:34px;display:flex;align-items:center;gap:26px">
+    <span class="muted">模型收到的：</span><span class="card" style="padding:10px 26px">狗① 咬② 人③</span><span class="serif" style="font-size:56px;color:var(--vec)">≠</span><span class="card" style="padding:10px 26px">人① 咬② 狗③</span></div>
+  <div class="abs" data-k="eq" style="left:1280px;top:330px;width:520px"><div class="serif" style="font-size:150px;line-height:1;color:#FF7A59">=</div><div style="font-size:38px;margin-top:10px">一模一样<br><span class="muted" style="font-size:30px">分不清谁咬谁</span></div></div>
+  <div class="abs" data-k="neq" style="left:1280px;top:330px;width:520px"><div class="serif" style="font-size:150px;line-height:1;color:var(--vec)">≠</div><div style="font-size:38px;margin-top:10px">不一样了<br><span class="muted" style="font-size:30px">同一个「狗」，第 1 位和第 3 位的色条不同</span></div></div>`;
+}, (lt, t, s) => {
+  const q = k => s.el.querySelector(`[data-k=${k}]`);
+  const rows = s.el.querySelectorAll('.prow');
+  rows.forEach((r, ri) => {
+    op(r, E(t, 90.4 + ri * .6, 91.2 + ri * .6));
+    Array.from(r.children).forEach((c, p) => {
+      const w = c.querySelector('.tok').textContent;
+      const st = c.querySelector('.stamp'); const k = E(t, 99.2 + p * .35 + ri * .15, 99.7 + p * .35 + ri * .15);
+      op(st, k); st.style.transform = `scale(${lerp(2.4, 1, k).toFixed(3)}) rotate(${(-22 * (1 - k)).toFixed(1)}deg)`;
+      const m = E(t, 100.2, 102.2); paintStrip(c.querySelector('.strip'), PW[w].map((x, i) => x + m * PV(p)[i]));
+      c.style.borderColor = w === '狗' ? `rgba(255,176,74,${E(t, 103.6, 104.3).toFixed(3)})` : 'transparent';
+    });
+  });
+  s.el.querySelectorAll('.prow').forEach((r, ri) => op(s.el.querySelectorAll('.prow')[ri].previousElementSibling, E(t, 90.4 + ri * .6, 91.2 + ri * .6)));
+  op(q('bag'), win(t, 95, 99.2, .5)); op(q('eq'), win(t, 95.4, 99.2, .5));
+  op(q('bag2'), E(t, 101.8, 102.6)); op(q('neq'), E(t, 102, 102.8));
+});
+
+/* 6 · attention */
+const attTokens = v => ['小明', '很', '渴', '，', '小红', '很', '饿', '。', '妈妈', '端来', v ? '一杯' : '一碗', v ? '水' : '面', '，', '递给了'];
+const ATT_HUE = [212, 236, 188, 0, 330, 236, 4, 0, 262, 152, 46, 28, 0, 120];
+function headScores(i, head, v) {
+  const s = new Array(i + 1).fill(0.02);
+  if (head === 'prev') { if (i > 0) s[i - 1] = 3; s[i] = 0.8; return s; }
+  if (head === 'people') { [0, 4, 8].forEach(j => { s[j] = 1; }); if (v === 0) { s[4] = 3.2; s[0] = 0.5; } else { s[0] = 3.2; s[4] = 0.5; } s[8] = 0.6; s[i] = Math.max(s[i], 0.4); return s; }
+  [1, 2, 5, 6, 10, 11].forEach(j => { s[j] = (j === 1 || j === 5) ? 0.4 : 1; });
+  s[11] = 3; s[10] = 0.8; if (v === 0) { s[6] = 2.6; s[2] = 0.5; } else { s[2] = 2.6; s[6] = 0.5; }
+  s[i] = Math.max(s[i], 0.4); return s;
+}
+const norm = a => { const t = a.reduce((x, y) => x + y, 0); return a.map(x => x / t); };
+const attW = v => { const a = norm(headScores(13, 'people', v)), b = norm(headScores(13, 'need', v)), c = norm(headScores(13, 'prev', v)); return a.map((x, k) => .45 * x + .45 * b[k] + .1 * c[k]); };
+const WA = attW(0), WB = attW(1);
+const PRED = [['小红', 81, 11], ['小明', 8, 78], ['她 / 他', 6, 6]];
+scene(108, 133, { step: '第 4 步 / 共 8 步', title: '注意力：每个词回头看，谁和我有关', dot: 4 }, (el, s) => {
+  el.innerHTML = `
+  <svg class="abs" data-k="svg" style="left:0;top:0" width="1920" height="1080"></svg>
+  <div class="abs" data-k="row" style="left:0;right:0;top:470px;display:flex;justify-content:center;gap:12px;font-family:'Noto Serif SC',serif">
+    ${attTokens(0).map((t, i) => `<div class="at"><span class="tok${PUNCT.test(t) ? ' punct' : ''}" style="--h:${ATT_HUE[i]}">${t}</span><span class="w mono"></span></div>`).join('')}
+  </div>
+  <div class="abs" data-k="pred" style="left:560px;top:640px">
+    <div style="font-size:30px;margin-bottom:14px;color:var(--ink-2)">「递给了」后面的下一个词最可能是：</div>
+    ${PRED.map(() => '<div class="pr"><span class="lab" style="text-align:right"></span><span class="track"><span class="fill"></span></span><span class="val mono"></span></div>').join('')}
+  </div>
+  <div class="abs" data-k="note" style="left:120px;top:880px;font-size:22px;color:var(--muted)">示意：真实模型有几十层、每层几十个「注意力头」，这里把它们合成了一张图</div>`;
+  s.paths = attTokens(0).map(() => { const p = sv('path', { class: 'arc' }); el.querySelector('[data-k=svg]').append(p); return p; });
+}, (lt, t, s) => {
+  const q = k => s.el.querySelector(`[data-k=${k}]`);
+  const items = Array.from(q('row').children);
+  const kv = E(t, 122, 124.6), w = WA.map((x, i) => lerp(x, WB[i], kv)), wmax = Math.max(...w.slice(0, 13));
+  const heat = E(t, 113, 115.6);
+  const toks = attTokens(t < 123.3 ? 0 : 1);
+  items.forEach((it, j) => {
+    op(it, E(t, 108.4 + j * .08, 108.9 + j * .08));
+    const chip = it.children[0], wl = it.children[1];
+    chip.textContent = toks[j];
+    chip.style.transform = (j === 10 || j === 11) ? `scaleY(${Math.abs(1 - 2 * lin(t, 122.7, 123.9)).toFixed(3)})` : '';
+    if (j === 13) { chip.style.outline = `3px solid rgba(232,235,242,${E(t, 111.4, 112).toFixed(2)})`; chip.style.outlineOffset = '5px'; wl.textContent = '当前词'; op(wl, E(t, 111.4, 112)); return; }
+    const r = w[j] / wmax * heat;
+    chip.style.background = PUNCT.test(toks[j]) ? `color-mix(in srgb, var(--att) ${Math.round(r * 88)}%, #121827)` : `color-mix(in srgb, var(--att) ${Math.round(r * 88)}%, hsl(${ATT_HUE[j]} var(--chip-s) var(--chip-bg-l)))`;
+    chip.style.color = r > .5 ? '#231300' : '';
+    wl.textContent = fmtP(w[j] * 100); op(wl, E(t, 114, 115));
+  });
+  const from = R(items[13].children[0]);
+  const sx = from.left + from.width / 2, sy = from.top - 6;
+  s.paths.forEach((p, j) => {
+    if (j === 13) { p.setAttribute('d', ''); return; }
+    const to = R(items[j].children[0]); const tx = to.left + to.width / 2, ty = to.top - 6;
+    const dx = Math.abs(sx - tx), cy = Math.min(sy, ty) - Math.min(250, 20 + dx * .3);
+    p.setAttribute('d', `M${sx.toFixed(1)},${sy.toFixed(1)} Q${((sx + tx) / 2).toFixed(1)},${cy.toFixed(1)} ${tx.toFixed(1)},${ty.toFixed(1)}`);
+    const r = w[j] / wmax;
+    p.style.strokeWidth = (1.5 + r * 12).toFixed(2); p.style.opacity = r < .05 ? 0 : (.18 + .82 * r).toFixed(3);
+    const L = p.getTotalLength(), g = E(t, 113 + (13 - j) * .1, 114.8 + (13 - j) * .1);
+    p.style.strokeDasharray = `${L} ${L}`; p.style.strokeDashoffset = (L * (1 - g)).toFixed(1);
+  });
+  op(q('pred'), E(t, 117, 118));
+  const kp = E(t, 125, 127.2);
+  Array.from(q('pred').querySelectorAll('.pr')).forEach((r, i) => {
+    const v = lerp(PRED[i][1], PRED[i][2], kp);
+    r.children[0].textContent = i === 2 ? (kp < .5 ? '她' : '他') : PRED[i][0];
+    r.querySelector('.fill').style.width = (v * EO(t, 117.2 + i * .1, 118.2 + i * .1)).toFixed(2) + '%';
+    r.children[2].textContent = Math.round(v) + '%';
+    r.classList.toggle('pick', i === (kp < .5 ? 0 : 1));
+  });
+  op(q('note'), E(t, 118, 119));
+});
+
+/* 7 · Q/K/V */
+const QIDX = [0, 2, 4, 6, 8, 9, 10, 11];
+const QKEY = { 0: '人物 · 口渴', 2: '需求：想喝东西', 4: '人物 · 饿了', 6: '需求：想吃东西', 8: '人物 · 递东西的人', 9: '动作：拿过来', 10: '数量', 11: '饮料 · 能喝' };
+const QSC = { 0: 4.3, 2: 3.6, 4: 2.1, 6: 1.2, 8: 1.0, 9: 0.8, 10: 0.9, 11: 3.2 };
+const QV = QIDX.map(j => QSC[j]), QMAX = Math.max(...QV), QW = softmax(QV, 1);
+scene(133, 158, { step: '第 4 步 / 共 8 步', title: '打分细节：提问、标签、内容（Q / K / V）', dot: 4 }, el => {
+  const toks = attTokens(1);
+  const order = QW.map((x, k) => [x, k]).sort((a, b) => b[0] - a[0]);
+  const leg = order.slice(0, 3).map(([x, k]) => `${toks[QIDX[k]]} ${fmtP(x * 100)}`).join(' + ') + ` + 其余 ${fmtP(order.slice(3).reduce((a, [x]) => a + x, 0) * 100)}`;
+  el.innerHTML = `
+  <div class="abs steps" data-k="steps" style="left:120px;top:230px;width:540px">
+    <div>① 提问（Query）</div><div>② 对标签（Key）</div><div>③ 换算成比例</div><div>④ 按比例吸收内容（Value）</div></div>
+  <div class="abs" data-k="qcard" style="left:120px;top:560px;width:560px;padding:24px 28px;box-sizing:border-box;border-radius:20px;background:var(--att-soft)">
+    <span class="serif" style="font-size:44px">${tokHTML('递给了', 120)}</span>
+    <div style="font-size:30px;line-height:1.55;margin-top:14px"><b class="amber">提问：</b>我在找接收东西的人，最好是正需要它的人</div>
+    <div data-k="mixu" style="height:10px;border-radius:5px;margin-top:18px;background:linear-gradient(90deg,${solid(ATT_HUE[0])} 0 48%,${solid(ATT_HUE[2])} 48% 72%,${solid(ATT_HUE[11])} 72% 88%,var(--line-2) 88%)"></div>
+  </div>
+  <div class="abs" data-k="list" style="left:760px;top:215px">
+    ${QIDX.map(j => `<div class="qrow">${tokHTML(toks[j], ATT_HUE[j])}<span class="key"><b>标签</b>${QKEY[j]}</span><span class="track"><span class="fill"></span></span><span class="num mono"></span></div>`).join('')}
+  </div>
+  <div class="abs" data-k="mix" style="left:760px;top:770px;width:1040px">
+    <div style="font-size:26px;color:var(--muted);margin-bottom:10px">新的「递给了」＝ 各词内容按比例混合：</div>
+    <div class="track" style="height:36px;display:flex;border-radius:9px">${QIDX.map(j => `<i style="display:block;height:100%;background:${solid(ATT_HUE[j])}"></i>`).join('')}</div>
+    <div style="font-size:28px;margin-top:10px" data-k="leg">${leg}</div>
+  </div>`;
+}, (lt, t, s) => {
+  const q = k => s.el.querySelector(`[data-k=${k}]`);
+  const step = t < 138 ? 0 : t < 144.4 ? 1 : t < 149 ? 2 : 3;
+  Array.from(q('steps').children).forEach((d, i) => { d.classList.toggle('on', i === step); op(d, E(t, 133.4 + i * .2, 133.9 + i * .2)); });
+  const qc = E(t, 134.2, 135); op(q('qcard'), qc); q('qcard').style.transform = `translateY(${(1 - qc) * 24}px)`;
+  op(q('mixu'), E(t, 153.4, 154.4));
+  const k3 = E(t, 145, 147.5);
+  Array.from(q('list').children).forEach((r, i) => {
+    op(r, E(t, 133.8 + i * .1, 134.3 + i * .1));
+    op(r.querySelector('.key'), E(t, 138.3 + i * .15, 138.8 + i * .15));
+    const g = EO(t, 140.5 + i * .12, 142 + i * .12);
+    const f = r.querySelector('.fill');
+    f.style.width = (lerp(QV[i] / QMAX, QW[i], k3) * 100 * g).toFixed(2) + '%';
+    f.style.background = `color-mix(in srgb, var(--att) ${Math.round(k3 * 100)}%, var(--vec))`;
+    r.querySelector('.num').textContent = g <= 0 ? '' : k3 < .5 ? QV[i].toFixed(1) + ' 分' : fmtP(QW[i] * 100);
+  });
+  op(q('mix'), E(t, 149, 149.8));
+  Array.from(q('mix').querySelectorAll('.track i')).forEach((c, i) => { c.style.width = (QW[i] * 100 * E(t, 149.6 + i * .15, 150.6 + i * .15)).toFixed(2) + '%'; });
+  op(q('leg'), E(t, 151, 152));
+});
+
+/* 8 · feed-forward */
+const FIN = 10, FC = 4, FRW = 8, fiy = i => 40 + i * 25, fix = 70, fox = 570, fnx = c => 230 + c * 60, fny = r => 44 + r * 31;
+const FACT = (() => { const r = rng(hash('埃菲尔铁塔位于')), set = new Set(); while (set.size < 7) set.add(Math.floor(r() * FC * FRW)); return Array.from(set); })();
+const FINV = vecFor('in-埃菲尔铁塔位于', FIN), FOUTV = vecFor('out-巴黎', FIN);
+scene(158, 176, { step: '第 5 步 / 共 8 步', title: '前馈网络：每个词查一查自己的「记忆」', dot: 5 }, (el, s) => {
+  el.innerHTML = `
+  <div class="abs serif" data-k="q" style="left:120px;top:250px;font-size:56px;font-weight:700">埃菲尔铁塔位于<span style="display:inline-block;min-width:1.6em;border-bottom:4px solid var(--att);text-align:center" class="amber">？</span></div>
+  <div class="abs" data-k="leg" style="left:120px;top:400px;width:520px;font-size:30px;line-height:1.5">
+    <div style="color:var(--muted);font-size:26px;margin-bottom:10px">亮起的开关里：</div>
+    <div><span class="mono amber">①</span> 对「地标建筑」敏感</div><div><span class="mono amber">②</span> 对「法国相关」敏感</div><div><span class="mono amber">③</span> 对「后面该接地名」敏感</div></div>
+  <div class="abs" data-k="res" style="left:120px;top:700px;font-size:36px">→ 输出被推向 <span class="serif" style="font-size:52px">${tokHTML('巴黎', 212)}</span></div>
+  <svg class="abs" data-k="svg" style="left:640px;top:250px" width="1200" height="562" viewBox="0 0 640 300"></svg>`;
+  const svg = el.querySelector('[data-k=svg]');
+  [['输入向量', fix], ['前馈网络：一大排「开关」', 320], ['输出向量', fox]].forEach(([tx, x]) => { const e = sv('text', { class: 'fcap', x, y: 16 }); e.textContent = tx; svg.append(e); });
+  let d = '';
+  for (let i = 0; i < FIN; i++) for (let k = 0; k < FC * FRW; k++) d += `M${fix + 14},${fiy(i)}L${fnx(k % FC)},${fny(Math.floor(k / FC))}`;
+  for (let k = 0; k < FC * FRW; k++) for (let i = 0; i < FIN; i++) d += `M${fnx(k % FC)},${fny(Math.floor(k / FC))}L${fox - 14},${fiy(i)}`;
+  svg.append(sv('path', { class: 'wire', d }));
+  s.inL = []; s.outL = [];
+  FACT.forEach(k => { const x = fnx(k % FC), y = fny(Math.floor(k / FC)); for (let i = 0; i < FIN; i++) { const a = sv('line', { class: 'hot', x1: fix + 14, y1: fiy(i), x2: x, y2: y, pathLength: 1, 'stroke-dasharray': 1 }); const b = sv('line', { class: 'hot', x1: x, y1: y, x2: fox - 14, y2: fiy(i), pathLength: 1, 'stroke-dasharray': 1 }); svg.append(a, b); s.inL.push(a); s.outL.push(b); } });
+  s.inC = []; s.outC = []; s.nr = []; s.nl = [];
+  for (let i = 0; i < FIN; i++) { const a = sv('rect', { class: 'cell', x: fix - 14, y: fiy(i) - 9.5, width: 28, height: 19, rx: 4 }), b = sv('rect', { class: 'cell', x: fox - 14, y: fiy(i) - 9.5, width: 28, height: 19, rx: 4 }); svg.append(a, b); s.inC.push(a); s.outC.push(b); }
+  for (let k = 0; k < FC * FRW; k++) { const x = fnx(k % FC), y = fny(Math.floor(k / FC)); const c = sv('circle', { class: 'nr', cx: x, cy: y, r: 9 }); const tx = sv('text', { class: 'nl', x, y }); const n = FACT.indexOf(k); tx.textContent = n >= 0 && n < 3 ? '①②③'[n] : ''; svg.append(c, tx); s.nr.push(c); s.nl.push(tx); }
+}, (lt, t, s) => {
+  const q = k => s.el.querySelector(`[data-k=${k}]`);
+  op(q('q'), E(t, 158.3, 159)); op(q('svg'), E(t, 158.5, 159.3));
+  s.inC.forEach((c, i) => { c.style.fill = cellColor(FINV[i] * E(t, 159.5 + i * .06, 160 + i * .06)); });
+  s.inL.forEach((l, n) => { const a = Math.floor(n / FIN); l.setAttribute('stroke-dashoffset', (1 - E(t, 160.8 + a * .14, 161.9 + a * .14)).toFixed(3)); });
+  s.nr.forEach((c, k) => { const a = FACT.indexOf(k); const on = a >= 0 ? E(t, 162.4 + a * .1, 162.9 + a * .1) : 0; c.style.fill = `color-mix(in srgb, var(--att) ${Math.round(on * 100)}%, var(--paper-2))`; });
+  s.nl.forEach(tx => op(tx, E(t, 163.4, 163.9)));
+  Array.from(q('leg').children).forEach((d, i) => op(d, i === 0 ? E(t, 163.6, 164.2) : E(t, 163.6 + i * 1.1, 164.2 + i * 1.1)));
+  s.outL.forEach((l, n) => { const a = Math.floor(n / FIN); l.setAttribute('stroke-dashoffset', (1 - E(t, 167 + a * .14, 168.1 + a * .14)).toFixed(3)); });
+  s.outC.forEach((c, i) => { c.style.fill = cellColor(FOUTV[i] * E(t, 168.6 + i * .06, 169.1 + i * .06)); });
+  const r = E(t, 169.8, 170.6); op(q('res'), r); q('res').style.transform = `translateY(${(1 - r) * 24}px)`;
+});
+
+/* 9 · layers */
+const TT = ['今天', '天气', '很好', '，', '我们', '一起', '去'], TH = [46, 188, 152, 0, 212, 262, 28];
+const LAY = [
+  ['第 1 层', c => [c], '每个词先看清自己：「天气」是名词，「去」是动词'],
+  ['第 2 层', c => (c > 0 && c !== 3 && c !== 4 ? [c - 1, c] : [c]), '留意紧挨着的词：「一起」和「去」连在一起'],
+  ['第 3 层', c => [[0], [0, 1], [1, 2], [3], [4], [4, 5], [4, 6]][c], '理清语法：「很好」说的是「天气」'],
+  ['第 4 层', c => [[0], [0, 1], [1, 2], [2, 3], [4], [4, 5], [4, 5, 6]][c], '发现缺口：「去」后面还缺一个目的地'],
+  ['第 5 层', c => [[0], [0, 1], [0, 1, 2], [2, 3], [4, 5], [4, 5], [1, 2, 4, 6]][c], '理解语境：天气好 → 适合出门'],
+  ['第 6 层', c => [[0, 1], [0, 1, 2], [0, 1, 2], [2, 3], [4, 5, 6], [4, 5, 6], [1, 2, 4, 5, 6]][c], '每个词都带上了整句的大意'],
+  ['第 N 层', c => [[0, 1], [0, 1, 2], [0, 1, 2], [2, 3], [2, 4, 5, 6], [4, 5, 6], [0, 1, 2, 4, 5, 6]][c], '「去」已准备好：下一个词多半是户外地点']
+];
+const tcol = c => TT[c] === '，' ? 'var(--line-2)' : solid(TH[c]);
+const tbg = list => 'linear-gradient(90deg,' + list.map((c, k) => `${tcol(c)} ${(k * 100 / list.length).toFixed(1)}% ${((k + 1) * 100 / list.length).toFixed(1)}%`).join(',') + ')';
+const LT = i => 177.2 + i * 1.9;
+scene(176, 196, { step: '第 6 步 / 共 8 步', title: '叠层：反复「交流 + 思考」几十层', dot: 6 }, (el, s) => {
+  const row = i => `<div class="trow" data-l="${i}"><span class="lab">${LAY[i][0]}</span>${TT.map((_, c) => `<span class="tcell"><i style="background:${tbg(LAY[i][1](c))}"></i></span>`).join('')}</div>`;
+  el.innerHTML = `
+  <div class="abs" style="left:120px;top:210px;width:1000px">
+    <div data-k="out" style="font-size:30px;padding:12px 20px;border-radius:14px;border:2px dashed var(--att);margin-bottom:10px">最后一个词「去」→ 下一个词：<b class="amber serif">公园 38%</b>　<span class="muted">爬山 21% · 海边 14%</span></div>
+    ${row(6)}<div style="text-align:center;font-size:22px;color:var(--muted);letter-spacing:.3em;height:36px">⋮ 中间还有几十层 ⋮</div>
+    ${[5, 4, 3, 2, 1, 0].map(row).join('')}
+    <div class="trow"><span class="lab">输入</span>${TT.map((w, c) => `<span class="tok${w === '，' ? ' punct' : ''}" style="--h:${TH[c]};font-size:24px;padding:2px 0;font-weight:500">${w}</span>`).join('')}</div>
+  </div>
+  <div class="abs" data-k="caps" style="left:1180px;top:230px;width:640px">${LAY.map(l => `<div class="tcap"><b>${l[0]}</b>${l[2]}</div>`).join('')}</div>
+  <div class="abs" data-k="hint" style="left:1180px;top:840px;width:640px;font-size:22px;color:var(--muted)">每个格子里的色条 = 它已吸收了哪些词的信息（示意）</div>`;
+}, (lt, t, s) => {
+  const q = k => s.el.querySelector(`[data-k=${k}]`);
+  s.el.querySelectorAll('.trow[data-l]').forEach(r => {
+    const i = +r.dataset.l, t0 = LT(i);
+    Array.from(r.querySelectorAll('.tcell i')).forEach((c, k) => op(c, E(t, t0 + .1 + k * .1, t0 + .45 + k * .1)));
+    r.style.background = `rgba(255,176,74,${(.16 * win(t, t0, t0 + 1.9, .25)).toFixed(3)})`;
+  });
+  Array.from(q('caps').children).forEach((c, i) => { const t0 = LT(i); c.classList.toggle('on', t >= t0 && t < t0 + 1.9); op(c, t >= t0 ? 1 : .35); });
+  op(q('out'), .25 + .75 * E(t, 190.8, 191.8));
+  op(q('hint'), E(t, 177, 178));
+});
+
+/* 10 · sampling */
+const CAND = [['公园', 4.2], ['爬山', 3.6], ['海边', 3.3], ['郊游', 3.0], ['逛街', 2.6], ['看电影', 2.0], ['野餐', 1.8], ['上班', 0.1], ['月球', -1.2]];
+const TEMP = t => t < 205.2 ? 1 : t < 208.2 ? lerp(1, .2, E(t, 205.2, 208.2)) : t < 210.6 ? .2 : t < 213.6 ? lerp(.2, 1.8, E(t, 210.6, 213.6)) : t < 215.4 ? 1.8 : lerp(1.8, 1, E(t, 215.4, 216.6));
+const ROUL = (() => { const out = []; let at = 216.8; for (let s = 0; s < 18; s++) { out.push([at, ((0 - 17 + s) % 9 + 9) % 9]); at += .05 + .0011 * s * s; } return out; })();
+const ROUL_END = ROUL[ROUL.length - 1][0];
+scene(196, 222, { step: '第 7 步 / 共 8 步', title: '选词：打分，再按概率抽签', dot: 7 }, el => {
+  el.innerHTML = `
+  <div class="abs serif" data-k="p" style="left:120px;top:228px;font-size:52px;font-weight:700">今天天气很好，我们一起去<span class="amber" style="display:inline-block;min-width:1.6em;border-bottom:4px solid var(--att);text-align:center">？</span></div>
+  <div class="abs" data-k="rows" style="left:106px;top:330px">
+    <div class="srow" style="height:34px;font-size:21px;color:var(--muted)"><span>候选词</span><span style="text-align:right">分数</span><span>概率</span><span></span><span></span></div>
+    ${CAND.map(([w, l]) => `<div class="srow"><span>${w}</span><span class="lg mono">${l.toFixed(1)}</span><span class="track"><span class="fill"></span></span><span class="pc mono"></span><span></span></div>`).join('')}
+  </div>
+  <div class="abs card" data-k="temp" style="left:1200px;top:330px;width:620px;padding:30px 34px;box-sizing:border-box">
+    <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:32px">温度</span><span class="mono amber" data-k="tv" style="font-size:54px;font-weight:600"></span></div>
+    <div style="position:relative;height:40px;margin-top:18px"><div style="position:absolute;left:0;right:0;top:16px;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--vec),var(--line-2) 50%,var(--att))"></div><div data-k="knob" style="position:absolute;top:4px;width:32px;height:32px;margin-left:-16px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 5px rgba(255,176,74,.35)"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:22px;color:var(--muted);margin-top:6px"><span>0.1 稳重</span><span>1.0 默认</span><span>2.0 放飞</span></div>
+    <div data-k="desc" style="font-size:28px;line-height:1.5;margin-top:22px;min-height:84px"></div>
+  </div>
+  <div class="abs" data-k="win" style="left:1200px;top:720px;font-size:36px">这一次抽中：<span class="serif" style="font-size:60px">${tokHTML('公园', 46)}</span></div>`;
+}, (lt, t, s) => {
+  const q = k => s.el.querySelector(`[data-k=${k}]`);
+  op(q('p'), E(t, 196.3, 197));
+  const T = TEMP(t), p = softmax(CAND.map(c => c[1]), T);
+  let hi = -1; ROUL.forEach(([a, i]) => { if (t >= a) hi = i; });
+  const won = t >= ROUL_END + .15;
+  Array.from(q('rows').children).slice(1).forEach((r, i) => {
+    op(r, E(t, 196.6 + i * .08, 197.1 + i * .08));
+    r.querySelector('.fill').style.width = (p[i] * 100 * EO(t, 197.5 + i * .08, 198.6 + i * .08)).toFixed(2) + '%';
+    r.querySelector('.pc').textContent = fmtP(p[i] * 100);
+    r.classList.toggle('hi', !won && t >= ROUL[0][0] && hi === i);
+    r.classList.toggle('win', won && i === 0);
+  });
+  op(q('temp'), E(t, 204.6, 205.2));
+  q('tv').textContent = T.toFixed(2);
+  q('knob').style.left = ((T - .1) / 1.9 * 100).toFixed(2) + '%';
+  q('desc').textContent = T < .5 ? '温度低：几乎总选第一名。稳定，但每次都一样。' : T <= 1.3 ? '温度适中：大多选热门词，偶尔换个说法。' : '温度高：冷门词也有机会，更有创意，也容易跑偏。';
+  const w = E(t, ROUL_END + .15, ROUL_END + .8); op(q('win'), w); q('win').style.transform = `scale(${lerp(.9, 1, bk(w)).toFixed(3)})`;
+});
+
+/* 11 · loop */
+const LP = ['床前', '明月', '光', '，'], LG = ['疑', '是', '地上', '霜', '。', '⟨结束⟩'];
+const RT = [223.6, 228, 232, 236, 240, 244];
+scene(222, 250, { step: '第 8 步 / 共 8 步', title: '循环：接回句尾，再来一遍', dot: 8 }, el => {
+  const all = LP.concat(LG.slice(0, 5));
+  el.innerHTML = `
+  <div class="abs" data-k="seq" style="left:120px;top:240px;display:flex;gap:12px">${all.map((w, i) => `<div class="lnode">${tokHTML(w, HUES[i % HUES.length])}<span class="kv">KV 已缓存</span></div>`).join('')}</div>
+  <div class="abs" data-k="mach" style="left:120px;top:430px;width:680px;height:150px;box-sizing:border-box;padding:24px 30px;border-radius:22px;border:3px solid var(--line-2);background:var(--paper)">
+    <div class="serif" style="font-size:44px;font-weight:900"><span data-k="dot" style="display:inline-block;width:18px;height:18px;border-radius:50%;background:var(--line-2);margin-right:14px;vertical-align:6px"></span>Transformer</div>
+    <div style="font-size:26px;color:var(--muted);margin-top:6px">几十层 · 注意力 + 前馈 → 打分 → 抽签</div></div>
+  <div class="abs" style="left:830px;top:462px;font-size:64px;color:var(--muted)">→</div>
+  <div class="abs" style="left:930px;top:436px;width:260px;text-align:center"><div style="font-size:24px;color:var(--muted)">新词元</div><div data-k="slot" style="height:90px;display:flex;align-items:center;justify-content:center;font-family:'Noto Serif SC',serif"></div></div>
+  <div class="abs mono" data-k="stats" style="left:120px;top:630px;font-size:27px;color:var(--ink-2)"></div>
+  <div class="abs" data-k="cap" style="left:120px;top:690px;width:1060px;font-size:30px;line-height:1.55"></div>
+  <div class="abs" style="left:1280px;top:240px;width:540px;display:flex;flex-direction:column;gap:22px" data-k="chat">
+    <div class="bubble" style="align-self:flex-end;background:var(--vec-soft)"><span class="who">你</span><span class="serif">床前明月光，</span></div>
+    <div class="bubble" style="align-self:flex-start;min-width:280px;background:var(--paper);border:1.5px solid var(--line)"><span class="who">模型</span><span class="serif amber" data-k="txt"></span><span class="caret" data-k="caret"></span></div>
+  </div>`;
+}, (lt, t, s) => {
+  const q = k => s.el.querySelector(`[data-k=${k}]`);
+  const nodes = Array.from(q('seq').children);
+  let r = -1; RT.forEach((a, i) => { if (t >= a) r = i; });
+  nodes.forEach((n, i) => {
+    const shownAt = i < 4 ? 222.3 + i * .15 : RT[i - 4] + 2.9;
+    const a = lin(t, shownAt, shownAt + .4); op(n, a > 0 ? 1 : 0); n.style.transform = i >= 4 ? `scale(${lerp(.4, 1, bk(a)).toFixed(3)})` : `translateY(${(1 - eo(a)) * 20}px)`;
+    const calcStart = i < 4 ? RT[0] : RT[i - 3], calcEnd = calcStart + 1.6;
+    const calc = t >= calcStart && t < calcEnd;
+    n.querySelector('.tok').style.boxShadow = calc ? '0 0 0 4px var(--att)' : 'none';
+    op(n.querySelector('.kv'), t >= calcEnd ? 1 : 0);
+  });
+  const busy = r >= 0 && t < RT[r] + 1.6;
+  q('mach').style.borderColor = busy ? 'var(--att)' : 'var(--line-2)';
+  q('mach').style.boxShadow = busy ? '0 0 0 8px rgba(255,176,74,.14)' : 'none';
+  q('dot').style.background = busy && Math.floor(t * 4) % 2 === 0 ? 'var(--att)' : 'var(--line-2)';
+  const slot = q('slot');
+  let slotTok = '';
+  if (r >= 0) {
+    const a = RT[r] + 1.6;
+    if (t >= a && (r === 5 || t < a + .6)) slotTok = LG[r];
+    if (r < 5 && t >= a + .6 && t < a + 1.3) flyAt(LG[r], R(slot), R(nodes[4 + r].querySelector('.tok')), lin(t, a + .6, a + 1.3), 50, 'center');
+  }
+  if (slot.dataset.v !== slotTok) { slot.dataset.v = slotTok; slot.innerHTML = slotTok ? `<span style="font-size:56px">${tokHTML(slotTok, slotTok === '⟨结束⟩' ? 0 : HUES[(4 + r) % HUES.length])}</span>` : ''; }
+  if (slotTok) { const a = RT[r] + 1.6; slot.firstChild.style.display = 'inline-block'; slot.firstChild.style.transform = `scale(${lerp(.4, 1, bk(lin(t, a, a + .4))).toFixed(3)})`; }
+  const calcN = r === 0 ? 4 : 1, cached = r <= 0 ? 0 : 3 + r;
+  q('stats').innerHTML = r < 0 ? '' : `第 <b class="amber">${r + 1}</b> 轮 · 本轮计算 <b class="amber">${calcN}</b> 个词元 · 从缓存复用 <b class="amber">${cached}</b> 个`;
+  q('cap').textContent = r < 0 ? '' : r === 0 ? '第 1 轮（预填充）：一次读完整句提示，把每个词算好的「标签」和「内容」存进缓存。'
+    : r === 5 && t >= RT[5] + 1.6 ? '抽中「结束」标记，停止生成。整段回答一共跑了 6 轮。' : `第 ${r + 1} 轮：只为新词「${LG[r - 1]}」做计算，前面的词直接从缓存里取。`;
+  let txt = ''; LG.slice(0, 5).forEach((w, i) => { if (t >= RT[i] + 2.9) txt += w; });
+  q('txt').textContent = txt;
+  op(q('caret'), t < RT[5] + 1.6 && Math.floor(t * 2.2) % 2 === 0 ? 1 : 0);
+  op(q('chat'), E(t, 222.6, 223.4));
+});
+
+/* 12 · recap */
+const PIPE = [['输入', '一句话', '你的问题'], ['1', '切词', '变成编号'], ['2 · 3', '向量+位置', '意思和顺序'], ['4', '注意力', '词和词交流'], ['5', '前馈', '各自思考'], ['7', '打分', '10 万+ 候选'], ['7', '抽签', '温度控制'], ['8', '新词', '接回句尾']];
+const PON = [[250.5, [0]], [251.8, [1]], [253.2, [2]], [255.2, [3], '第 1 层'], [255.9, [4], '第 1 层'], [256.6, [3], '第 2 层'], [257.3, [4], '第 2 层'], [258, [3], '…… 第 N 层'], [258.7, [4], '…… 第 N 层'], [260.2, [5]], [261.4, [6]], [262.6, [7]], [265.2, [0, 1, 2, 3, 4, 5, 6, 7]]];
+scene(250, 268, { step: '回顾', title: '一次推理的完整旅程', dot: 0 }, (el, s) => {
+  const node = (p, i) => `<div class="pn" data-i="${i}"><small>${p[0]}</small><b>${p[1]}</b><em>${p[2]}</em></div>`;
+  el.innerHTML = `
+  <div class="abs" data-k="row" style="left:0;right:0;top:380px;display:flex;justify-content:center;gap:14px">
+    ${node(PIPE[0], 0)}<span class="pa">→</span>${node(PIPE[1], 1)}<span class="pa">→</span>${node(PIPE[2], 2)}<span class="pa">→</span>
+    <div style="display:flex;gap:12px;padding:40px 14px 14px;border-radius:22px;border:2.5px dashed var(--vec);position:relative"><span data-k="glab" style="position:absolute;left:18px;top:6px;font-size:22px;color:var(--vec);font-weight:700">重复几十层</span>${node(PIPE[3], 3)}${node(PIPE[4], 4)}</div>
+    <span class="pa">→</span>${node(PIPE[5], 5)}<span class="pa">→</span>${node(PIPE[6], 6)}<span class="pa">→</span>${node(PIPE[7], 7)}
+  </div>
+  <svg class="abs" data-k="svg" style="left:0;top:0" width="1920" height="1080"><path data-k="ret" fill="none" stroke="var(--att)" stroke-width="4" stroke-dasharray="1" pathLength="1"/></svg>
+  <div class="abs" data-k="retlab" style="left:0;right:0;top:720px;text-align:center;font-size:32px;color:var(--att)">↺ 接回句尾，再来一轮</div>`;
+}, (lt, t, s) => {
+  const q = k => s.el.querySelector(`[data-k=${k}]`);
+  const nodes = Array.from(s.el.querySelectorAll('.pn'));
+  op(q('row'), E(t, 250.2, 250.9));
+  let cur = null; PON.forEach(p => { if (t >= p[0]) cur = p; });
+  nodes.forEach((n, i) => n.classList.toggle('on', !!cur && cur[1].includes(i)));
+  q('glab').textContent = cur && cur[2] ? cur[2] : '重复几十层';
+  const a = R(nodes[7]), b = R(nodes[0]);
+  const x0 = a.left + a.width / 2, y0 = a.bottom + 10, x1 = b.left + b.width / 2, y1 = b.bottom + 10;
+  q('ret').setAttribute('d', `M${x0},${y0} C${x0},${y0 + 150} ${x1},${y1 + 150} ${x1},${y1}`);
+  q('ret').setAttribute('stroke-dashoffset', (1 - E(t, 262.9, 264.8)).toFixed(3));
+  op(q('ret'), t > 262.9 ? 1 : 0); op(q('retlab'), E(t, 264.2, 265));
+});
+
+/* 13 · outro */
+scene(268, 279, null, el => {
+  el.innerHTML = `
+  <div class="abs serif" data-k="a" style="left:0;right:0;top:330px;text-align:center;font-size:76px;font-weight:900;line-height:1.5">大模型不是在「查」答案，<br>而是一次又一次地<span class="amber">「猜」</span>下一个词。</div>
+  <div class="abs" data-k="b" style="left:0;right:0;top:700px;text-align:center;font-size:28px;color:var(--muted)">切词 → 向量 → 位置 → 注意力 → 前馈 → 叠层 → 选词 → 循环</div>
+  <div class="abs" data-k="c" style="left:0;right:0;top:960px;text-align:center;font-size:22px;color:var(--muted)">片中数字均为教学示意值，不是某个真实模型的输出</div>`;
+}, (lt, t, s) => {
+  const q = k => s.el.querySelector(`[data-k=${k}]`);
+  const a = E(lt, .3, 1.6); op(q('a'), a); q('a').style.transform = `translateY(${(1 - a) * 30}px)`;
+  op(q('b'), E(lt, 1.8, 2.8)); op(q('c'), E(lt, 2.5, 3.5));
+});
+
+/* ---------------- subtitles ---------------- */
+const SUBS = [
+  [3.2, 6.8, 'ChatGPT、Claude、DeepSeek……背后几乎都是同一种结构：Transformer'],
+  [7.4, 11.2, '它回答你的时候，其实一直在重复同一件事：'],
+  [11.2, 15.8, '看着前面的文字，猜下一个词。'],
+  [15.8, 19.6, '每一轮，模型给候选词打分，再按概率抽一个。'],
+  [19.6, 24, '不是第一名也可能被抽中，因为它是按概率抽签的。'],
+  [24, 28.2, '抽中的词接到句尾，再猜下一个……'],
+  [28.2, 32.6, '直到抽中「结束」标记，一句话就写完了。'],
+  [33.4, 37, '这台「猜词机」内部是怎么工作的？'],
+  [37, 40.6, '我们把它拆成 8 步来看。'],
+  [41.4, 45.4, '第一步：切词。先把句子切成一小块一小块。'],
+  [45.4, 49.8, '每一块叫一个「词元」，常用词是整块，生僻词会被拆开。'],
+  [49.8, 54.2, '每个词元都有编号，模型真正读到的只是一串数字。'],
+  [54.2, 59.6, '主流大模型的词典，大约有 10 万到 20 万个词元。'],
+  [60.4, 64.6, '第二步：把每个编号换成一长串数字，叫「向量」。'],
+  [64.6, 69, '向量就像这个词在「意义地图」上的坐标。'],
+  [69, 74, '模型读了海量文本后，意思相近的词自己聚到了一起。'],
+  [74, 79.4, '猫挨着狗，苹果挨着香蕉，北京挨着东京。'],
+  [79.4, 84.4, '连方向都有意义：从「男人」指向「女人」的这支箭头……'],
+  [84.4, 89.6, '从「国王」出发走同样一步，就到了「女王」。'],
+  [90.4, 94.6, '第三步：加上位置。「狗咬人」和「人咬狗」，字完全一样。'],
+  [94.6, 99, '如果不标顺序，模型看到的是同一袋词。'],
+  [99, 103.6, '所以给每个词再叠加一个「排第几位」的信号。'],
+  [103.6, 107.6, '同一个字放在不同位置，向量就不一样了。'],
+  [108.4, 112.6, '第四步，也是最核心的一步：注意力。'],
+  [112.6, 117, '读到「递给了」，模型要回头看：递给谁？'],
+  [117, 122, '它最关注「小红」「饿」「面」，于是预测：小红。'],
+  [122, 127, '把「一碗面」换成「一杯水」，注意力就转向了口渴的小明。'],
+  [127, 132.6, '每个词都这样给前面的词打「相关度」分，按分数吸收信息。'],
+  [133.4, 138, '分数怎么来？每个词都带着三样东西：提问、标签、内容。'],
+  [138, 144.2, '「递给了」拿着自己的提问，去和每个词的标签比对，得出分数。'],
+  [144.2, 148.8, '分数换算成比例，加起来正好是 100%。'],
+  [148.8, 153.4, '再按比例，把各个词的内容混合起来。'],
+  [153.4, 157.6, '这样，「递给了」就「知道」东西该给口渴的小明了。'],
+  [158.4, 162.6, '第五步：每个词再各自「想一想」，这叫前馈网络。'],
+  [162.6, 167, '它像一大排开关，不同的输入会点亮不同的组合。'],
+  [167, 171.6, '「埃菲尔铁塔位于」点亮了跟地标、法国有关的开关……'],
+  [171.6, 175.6, '输出就被推向了「巴黎」。知识就藏在这些连接里。'],
+  [176.4, 180.8, '第六步：「注意力 + 前馈」算一层，大模型会叠几十层。'],
+  [180.8, 185.2, '每一层都在同一份草稿上继续补充批注。'],
+  [185.2, 190.2, '越往上，每个词装进的上下文就越多。'],
+  [190.2, 195.6, '到最后一层，最末尾的词已经知道接下来该说什么。'],
+  [196.4, 200.6, '第七步：给词典里的每个词打分，换算成概率。'],
+  [200.6, 205, '然后按概率抽签。所以同一个问题，每次回答都不太一样。'],
+  [205, 210.4, '「温度」是抽签的旋钮：调低，几乎总是选第一名；'],
+  [210.4, 215.6, '调高，冷门词也有机会，更有创意，也更容易跑偏。'],
+  [216, 219.4, '来，抽一次签。'],
+  [219.4, 221.8, '这一次，抽中了「公园」。'],
+  [222.4, 227, '第八步：把抽中的词接回句尾，再跑一遍。'],
+  [227, 231.6, '第一轮读完整句提示，并把算好的结果存进缓存。'],
+  [231.6, 236.2, '之后每一轮，只需要为新出现的那个词做计算。'],
+  [236.2, 241.2, '这就是你看到的「打字机效果」：一个词一个词地冒出来。'],
+  [241.2, 249.4, '直到抽中「结束」标记，回答完成。'],
+  [250.4, 255, '回顾一下：切词，变成向量，加上位置；'],
+  [255, 260, '再经过几十层「注意力 + 前馈」；'],
+  [260, 265.6, '打分、抽签，得到一个新词，再接回句尾。'],
+  [265.6, 267.8, '周而复始。']
+];
+const DURATION = 279;
+
+/* ---------------- render ---------------- */
+const chromeEl = document.getElementById('chrome'), cStep = document.getElementById('c-step'), cTitle = document.getElementById('c-title'), cDots = document.getElementById('c-dots');
+cDots.innerHTML = STEPS.map((s, i) => `<span>${i + 1} ${s[0]}</span>`).join('');
+const subEl = document.getElementById('sub'), subSpan = subEl.firstElementChild, fadeEl = document.getElementById('fade');
+function render(t) {
+  flyEl.style.opacity = 0;
+  let best = null, bestO = 0;
+  for (const s of SCENES) {
+    const o = s.t0 === 0 ? 1 - E(t, s.t1 - .5, s.t1) : Math.min(E(t, s.t0, s.t0 + .5), s.t1 >= DURATION ? 1 : 1 - E(t, s.t1 - .5, s.t1));
+    const vis = t >= s.t0 && t < s.t1 && o > 0;
+    s.el.style.visibility = vis ? 'visible' : 'hidden';
+    if (!vis) continue;
+    s.el.style.opacity = o.toFixed(3);
+    s.draw(t - s.t0, t, s);
+    if (o > bestO) { bestO = o; best = s; }
+  }
+  if (best && best.chrome) {
+    op(chromeEl, bestO); cStep.textContent = best.chrome.step; cTitle.textContent = best.chrome.title;
+    Array.from(cDots.children).forEach((d, i) => { d.className = i + 1 === best.chrome.dot ? 'on' : i + 1 < best.chrome.dot ? 'done' : ''; });
+  } else op(chromeEl, 0);
+  const sub = SUBS.find(([a, b]) => t >= a && t < b);
+  if (sub) { subSpan.textContent = sub[2]; op(subEl, win(t, sub[0], sub[1], .18)); } else op(subEl, 0);
+  op(fadeEl, Math.max(1 - lin(t, 0, .8), lin(t, DURATION - 1.2, DURATION)));
+}
+window.render = render;
+window.DURATION = DURATION;
+window.SUBS = SUBS;
+window.prepare = async () => {
+  for (let t = 0; t < DURATION; t += 0.5) { render(t); document.body.offsetHeight; }
+  await document.fonts.ready;
+  await new Promise(r => setTimeout(r, 300));
+  await document.fonts.ready;
+  render(0);
+  return document.fonts.size;
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+node_modules/
+seg_*.mp4
+segs.txt
+transformer-explainer.mp4
+transformer-explainer.srt

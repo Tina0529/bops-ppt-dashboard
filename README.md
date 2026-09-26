@@ -76,10 +76,12 @@ bops-ppt-dashboard/
 │   ├── index.html             Dashboard（KPI/トレンド/会社別/シグナル、期間切替、明暗テーマ）
 │   ├── detail.html            明細ページ（当日/当週/当月、Excel 列準拠、ソート/検索）
 │   ├── transformer.html       大模型推理の図解（中国語・非エンジニア向けのインタラクティブ動画解説、単体で動作）
+│   ├── video/                 上記の解説動画（1080p MP4・4 分 39 秒・中国語字幕焼き込み）＋ SRT 字幕
 │   ├── robots.txt             検索エンジン除外
 │   ├── .nojekyll
 │   └── data/                  CI が生成（dashboard.json / detail.json / trend_*.csv）
 │                              trend_org_monthly.csv = 組織別 月次推移（long 形式）
+├── video/                     解説動画の生成元（film.html をフレーム単位で描画 → ffmpeg で MP4 化、`npm install && node render.js`）
 ├── scripts/
 │   ├── generate_site.py       TSV → dashboard.json + detail.json（本リポジトリ固有）
 │   ├── org_trend.py           組織別 月次集計の共通ロジック（本リポジトリ固有）
