@@ -814,6 +814,7 @@ const chromeEl = document.getElementById('chrome'), cStep = document.getElementB
 cDots.innerHTML = STEPS.map((s, i) => `<span>${i + 1} ${s[0]}</span>`).join('');
 const subEl = document.getElementById('sub'), subSpan = subEl.firstElementChild, fadeEl = document.getElementById('fade');
 let FSUBS = SUBS; // subtitle windows in film time (replaced by the narration-aware schedule below)
+const BURN_SUBS = !/[?&]nosubs\b/.test(location.search); // film.html?nosubs renders a clean picture for editors that add their own subtitles
 function renderFilm(t) {
   flyEl.style.opacity = 0;
   let best = null, bestO = 0;
@@ -831,7 +832,7 @@ function renderFilm(t) {
     Array.from(cDots.children).forEach((d, i) => { d.className = i + 1 === best.chrome.dot ? 'on' : i + 1 < best.chrome.dot ? 'done' : ''; });
   } else op(chromeEl, 0);
   const sub = FSUBS.find(([a, b]) => t >= a && t < b);
-  if (sub) { subSpan.textContent = sub[2]; op(subEl, win(t, sub[0], sub[1], .18)); } else op(subEl, 0);
+  if (sub && BURN_SUBS) { subSpan.textContent = sub[2]; op(subEl, win(t, sub[0], sub[1], .18)); } else op(subEl, 0);
   op(fadeEl, Math.max(1 - lin(t, 0, .8), lin(t, DURATION - 1.2, DURATION)));
 }
 /* ---------------- narration-aware time map ----------------
