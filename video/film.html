@@ -813,7 +813,8 @@ const DURATION = 279;
 const chromeEl = document.getElementById('chrome'), cStep = document.getElementById('c-step'), cTitle = document.getElementById('c-title'), cDots = document.getElementById('c-dots');
 cDots.innerHTML = STEPS.map((s, i) => `<span>${i + 1} ${s[0]}</span>`).join('');
 const subEl = document.getElementById('sub'), subSpan = subEl.firstElementChild, fadeEl = document.getElementById('fade');
-function render(t) {
+let FSUBS = SUBS; // subtitle windows in film time (replaced by the narration-aware schedule below)
+function renderFilm(t) {
   flyEl.style.opacity = 0;
   let best = null, bestO = 0;
   for (const s of SCENES) {
@@ -829,19 +830,50 @@ function render(t) {
     op(chromeEl, bestO); cStep.textContent = best.chrome.step; cTitle.textContent = best.chrome.title;
     Array.from(cDots.children).forEach((d, i) => { d.className = i + 1 === best.chrome.dot ? 'on' : i + 1 < best.chrome.dot ? 'done' : ''; });
   } else op(chromeEl, 0);
-  const sub = SUBS.find(([a, b]) => t >= a && t < b);
+  const sub = FSUBS.find(([a, b]) => t >= a && t < b);
   if (sub) { subSpan.textContent = sub[2]; op(subEl, win(t, sub[0], sub[1], .18)); } else op(subEl, 0);
   op(fadeEl, Math.max(1 - lin(t, 0, .8), lin(t, DURATION - 1.2, DURATION)));
 }
-window.render = render;
-window.DURATION = DURATION;
-window.SUBS = SUBS;
+/* ---------------- narration-aware time map ----------------
+   剪映「朗读」 starts each voice clip at its subtitle's start. A clip that runs past the next
+   subtitle's start spills onto a second audio track, so wherever a line needs more time than its
+   slot, the film is slowed down (video time > film time) until the estimated narration fits. */
+const RATE = 4.3, PAUSE = .22, EN_WORD = .45, PAD = .5;
+const speechSec = s => (s.match(/[\u4e00-\u9fff]/g) || []).length / RATE + (s.match(/[A-Za-z]+/g) || []).length * EN_WORD
+  + (s.match(/\d+/g) || []).length * .35 + (s.match(/[，。：；、？！…]/g) || []).length * PAUSE;
+const NEED = SUBS.map(([, , s]) => speechSec(s) + PAD);
+const KNOTS = [[0, 0]]; // [film time, video time]
+{
+  let v = 0, prev = 0;
+  SUBS.forEach(([a], i) => { v += (a - prev) * (i ? Math.max(1, NEED[i - 1] / (a - prev)) : 1); KNOTS.push([a, v]); prev = a; });
+  v += (DURATION - prev) * Math.max(1, NEED[SUBS.length - 1] / (DURATION - prev));
+  KNOTS.push([DURATION, v]);
+}
+function mapKnots(x, from, to) {
+  if (x <= 0) return 0;
+  for (let k = 1; k < KNOTS.length; k++) {
+    const a = KNOTS[k - 1], b = KNOTS[k];
+    if (x <= b[from] || k === KNOTS.length - 1) return b[from] === a[from] ? a[to] : a[to] + (x - a[from]) / (b[from] - a[from]) * (b[to] - a[to]);
+  }
+}
+const toVideo = t => mapKnots(t, 0, 1), toFilm = v => mapKnots(v, 1, 0);
+const VIDEO_DURATION = KNOTS[KNOTS.length - 1][1];
+const VSUBS = SUBS.map(([a, b, text], i) => {
+  const va = toVideo(a), next = i < SUBS.length - 1 ? toVideo(SUBS[i + 1][0]) - .05 : VIDEO_DURATION;
+  return [va, Math.min(next, Math.max(toVideo(b), va + NEED[i])), text];
+});
+FSUBS = VSUBS.map(([va, vb, text]) => [toFilm(va), toFilm(vb), text]);
+
+window.render = v => renderFilm(toFilm(v));
+window.DURATION = VIDEO_DURATION;
+window.SUBS = VSUBS;
+window.NARRATION = { NEED, VSUBS };
 window.prepare = async () => {
-  for (let t = 0; t < DURATION; t += 0.5) { render(t); document.body.offsetHeight; }
+  for (let t = 0; t < DURATION; t += 0.5) { renderFilm(t); document.body.offsetHeight; }
   await document.fonts.ready;
   await new Promise(r => setTimeout(r, 300));
   await document.fonts.ready;
-  render(0);
+  renderFilm(0);
   return document.fonts.size;
 };
 </script>
