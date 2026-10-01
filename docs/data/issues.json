@@ -298,7 +298,7 @@
     "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/309",
     "issue_number": 309,
     "state": "open",
-    "last_seen": "2026-09-30",
+    "last_seen": "2026-10-01",
     "biz_id": "95a91974-bcfa-48d6-80f2-018b5bb60030",
     "note": "前端轮询式重复 PUT /api/ppt/update/{bizId}/settings（2214:111/2215:53/2216:83/2217:75、計322回）＋ agent の strategyId 10025 切替が前端の旧値 10018 に 1.4 秒で上書きされる競態。2216=切替が無効化、2217=DB記録(10018)と実生成(10025)が不一致。当日 4/4 件全件命中",
     "lark_task": {
@@ -319,5 +319,12 @@
     "state": "resolved",
     "last_seen": "2026-09-30",
     "note": "確認カード未回答×2（2222/2224）→ 2223 で成功。プログラム異常ではない"
+  },
+  "石原さん|キリンビール事業成長戦略提言資料": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-5931593495",
+    "state": "open",
+    "last_seen": "2026-10-01",
+    "biz_id": "d8687e84-1deb-451e-b641-f4c9a3825e14",
+    "note": "CROSS Business Procuders。22頁 outline 完成後アウトライン確認で停止（⏸ 確認待ち、プログラム異常ではない）"
   }
 }
