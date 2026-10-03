@@ -298,7 +298,7 @@
     "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/309",
     "issue_number": 309,
     "state": "open",
-    "last_seen": "2026-10-02",
+    "last_seen": "2026-10-03",
     "biz_id": "95a91974-bcfa-48d6-80f2-018b5bb60030",
     "note": "前端轮询式重复 PUT /api/ppt/update/{bizId}/settings（2214:111/2215:53/2216:83/2217:75、計322回）＋ agent の strategyId 10025 切替が前端の旧値 10018 に 1.4 秒で上書きされる競態。2216=切替が無効化、2217=DB記録(10018)と実生成(10025)が不一致。当日 4/4 件全件命中",
     "lark_task": {
@@ -326,5 +326,24 @@
     "last_seen": "2026-10-01",
     "biz_id": "d8687e84-1deb-451e-b641-f4c9a3825e14",
     "note": "CROSS Business Procuders。22頁 outline 完成後アウトライン確認で停止（⏸ 確認待ち、プログラム異常ではない）"
+  },
+  "今村 達也|ユーラスエナジーホールディングス": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/245",
+    "issue_number": 245,
+    "state": "open",
+    "last_seen": "2026-10-03",
+    "biz_id": "eb2ac848-8ce8-43bf-95de-759ef66637c5",
+    "note": "合并 slide_3/4 删除 slide_4 后孤儿 content slide_4 + plans slide_11 重复残留（ppt_plans: Plan file count mismatch 11 vs 10）。未丢页",
+    "lark_task": {
+      "guid": "2a6fa011-5daa-40f4-a850-cc98aad5035b",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=2a6fa011-5daa-40f4-a850-cc98aad5035b",
+      "created": "追記"
+    }
+  },
+  "田野|JAF-CabinEye提案およ": {
+    "state": "waiting_user_input",
+    "last_seen": "2026-10-02",
+    "biz_id": "28348d85-18d1-413e-bc5b-b82bfac1abde",
+    "note": "10/2 21:42 JST（窓ギャップ分、10/3 補完）。ユーザーが『最初の8〜10ページのみ先に生成』を選択→9/16 頁生成後『残りのページ』確認カードで停止。失敗ではない"
   }
 }
