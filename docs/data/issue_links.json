@@ -295,6 +295,14 @@
     "state": "open",
     "bizId": ""
   },
+  "2240": {
+    "issue": 309,
+    "url": "https://github.com/sparticleinc/gbase-knowledge/issues/309#issuecomment-6037992177",
+    "kind": "追記",
+    "date": "2026-10-07",
+    "state": "open",
+    "bizId": "7b81e41c-b4b6-4fc4-aad2-d996b8a28af6"
+  },
   "2241": {
     "issue": 309,
     "url": "https://github.com/sparticleinc/gbase-knowledge/issues/309#issuecomment-6016335292",
@@ -302,5 +310,37 @@
     "date": "2026-10-06",
     "state": "open",
     "bizId": ""
+  },
+  "2242": {
+    "issue": 309,
+    "url": "https://github.com/sparticleinc/gbase-knowledge/issues/309#issuecomment-6037992177",
+    "kind": "追記",
+    "date": "2026-10-07",
+    "state": "open",
+    "bizId": "7b81e41c-b4b6-4fc4-aad2-d996b8a28af6"
+  },
+  "2243": {
+    "issue": 309,
+    "url": "https://github.com/sparticleinc/gbase-knowledge/issues/309#issuecomment-6037992177",
+    "kind": "追記",
+    "date": "2026-10-07",
+    "state": "open",
+    "bizId": "7b81e41c-b4b6-4fc4-aad2-d996b8a28af6"
+  },
+  "2244": {
+    "issue": 309,
+    "url": "https://github.com/sparticleinc/gbase-knowledge/issues/309#issuecomment-6037992177",
+    "kind": "追記",
+    "date": "2026-10-07",
+    "state": "open",
+    "bizId": "7b81e41c-b4b6-4fc4-aad2-d996b8a28af6"
+  },
+  "2245": {
+    "issue": 309,
+    "url": "https://github.com/sparticleinc/gbase-knowledge/issues/309#issuecomment-6037992177",
+    "kind": "追記",
+    "date": "2026-10-07",
+    "state": "open",
+    "bizId": "7b81e41c-b4b6-4fc4-aad2-d996b8a28af6"
   }
 }
