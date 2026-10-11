@@ -1,5 +1,4 @@
 label,total,generated,completion,avg_per_slide
-09-16,5,4,0.8,58.4
 09-17,4,2,0.5,230.1
 09-18,6,5,0.8333,70.1
 09-19,0,0,0,0
@@ -25,3 +24,4 @@ label,total,generated,completion,avg_per_slide
 10-09,2,2,1.0,43.3
 10-10,2,0,0.0,0
 10-11,0,0,0,0
+10-12,0,0,0,0
