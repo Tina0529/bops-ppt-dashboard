@@ -408,5 +408,36 @@
       "url": "https://applink.larksuite.com/client/todo/detail?guid=0f7c66c4-1fc5-4cd5-bb56-76c1164bb4ea",
       "created": "起票"
     }
+  },
+  "_issue|456": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/456",
+    "state": "open",
+    "last_seen": null
+  },
+  "Derrick|GBaseAIWorkspa": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/456",
+    "state": "open",
+    "last_seen": "2026-10-13",
+    "bops_ids": [
+      2297
+    ],
+    "note": "末页 content 被渲染成 Thank you 结束页"
+  },
+  "Derrick|SQL注入与防护开发者安全编码": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/245#issuecomment-6145653250",
+    "state": "open",
+    "last_seen": "2026-10-13",
+    "bops_ids": [
+      2290
+    ],
+    "note": "#245 再现：插入页覆盖 closing 页"
+  },
+  "Derrick|理光日本AI知识检索项目": {
+    "issue_url": null,
+    "state": "waiting_user_input",
+    "last_seen": "2026-10-13",
+    "bops_ids": [
+      2295
+    ]
   }
 }
