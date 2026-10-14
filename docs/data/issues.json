@@ -439,5 +439,33 @@
     "bops_ids": [
       2295
     ]
+  },
+  "中村 伸吾|住友金属鉱山経営生産性分析": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-6168410315",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-10-14",
+    "biz_id": "7e0fbb03-fcff-46b0-ae4a-ba9f79327e97",
+    "container_id": "2110207822571941901",
+    "note": "アビーム新規ユーザー。『この内容で生成を開始する』押下後 outline10節完成時に再び確認カード→未回答（⏸）",
+    "lark_task": {
+      "guid": "12fb3d78-3d72-495e-b608-a83ae0d4f739",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=12fb3d78-3d72-495e-b608-a83ae0d4f739",
+      "created": "追記"
+    }
+  },
+  "中村 伸吾|AGC化学品セグメントの損益": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-6168410315",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-10-14",
+    "biz_id": "2fa393e8-622f-4df6-8a06-c89983f64a46",
+    "container_id": "2110209425005785108",
+    "note": "同日2本目。『生成確認: この内容で開始する』押下後 outline12節完成時に再び確認カード→未回答（⏸）",
+    "lark_task": {
+      "guid": "12fb3d78-3d72-495e-b608-a83ae0d4f739",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=12fb3d78-3d72-495e-b608-a83ae0d4f739",
+      "created": "追記"
+    }
   }
 }
