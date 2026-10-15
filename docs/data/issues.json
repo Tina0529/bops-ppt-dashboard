@@ -467,5 +467,31 @@
       "url": "https://applink.larksuite.com/client/todo/detail?guid=12fb3d78-3d72-495e-b608-a83ae0d4f739",
       "created": "追記"
     }
+  },
+  "宮本潤|味の素ASEAN食品市場2050": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-6193361558",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-10-15",
+    "bops_ids": [
+      2302
+    ],
+    "biz_id": "bb967bfa-d94f-4f59-921b-ada141b88462",
+    "container_id": "2110358224814649399",
+    "note": "10/14 22:15 構成案確認門で停止→13分後に別 chat で同主題再生成(2303 成功25頁)",
+    "lark_task": "https://applink.larksuite.com/client/todo/detail?guid=12fb3d78-3d72-495e-b608-a83ae0d4f739"
+  },
+  "宮本潤|Cermaq2035年戦略マクロ動": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-6193361558",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-10-15",
+    "bops_ids": [
+      2307
+    ],
+    "biz_id": "75efe89f-b33d-4f83-aec1-e71d64a5b3b8",
+    "container_id": "2110686530290233400",
+    "note": "10/15 20:03 outline22頁完成後 構成案確認門で停止。outline turn 2946秒/$45.66",
+    "lark_task": "https://applink.larksuite.com/client/todo/detail?guid=12fb3d78-3d72-495e-b608-a83ae0d4f739"
   }
 }
