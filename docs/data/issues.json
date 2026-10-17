@@ -493,5 +493,35 @@
     "container_id": "2110686530290233400",
     "note": "10/15 20:03 outline22頁完成後 構成案確認門で停止。outline turn 2946秒/$45.66",
     "lark_task": "https://applink.larksuite.com/client/todo/detail?guid=12fb3d78-3d72-495e-b608-a83ae0d4f739"
+  },
+  "山崎 泰弘|食品日用品市場の次の成長機会": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-10-16",
+    "biz_id": "015ce09f-1414-4af6-b796-42d1eea34bb2",
+    "container_id": "2110968827795124315",
+    "note": "outline13頁後 確認門未回答→8分後 新会話 2311 で40頁に変更し成功",
+    "comment_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-6216710442",
+    "lark_task": {
+      "guid": "12fb3d78-3d72-495e-b608-a83ae0d4f739",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=12fb3d78-3d72-495e-b608-a83ae0d4f739",
+      "created": "追記"
+    }
+  },
+  "藤本彰仁|人事システムパッケージ比較SA": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-10-16",
+    "biz_id": "07eb4c45-22f8-4343-acdc-5d7af2056099",
+    "container_id": "2110977052028350476",
+    "note": "outline10頁後 確認門未回答→12分後 新会話 2313 で9頁に変更し成功",
+    "comment_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-6216710442",
+    "lark_task": {
+      "guid": "12fb3d78-3d72-495e-b608-a83ae0d4f739",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=12fb3d78-3d72-495e-b608-a83ae0d4f739",
+      "created": "追記"
+    }
   }
 }

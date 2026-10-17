@@ -438,5 +438,21 @@
     "date": "2026-10-15",
     "state": "open",
     "bizId": "75efe89f-b33d-4f83-aec1-e71d64a5b3b8"
+  },
+  "2310": {
+    "issue": 242,
+    "url": "https://github.com/sparticleinc/gbase-knowledge/issues/242",
+    "kind": "追記",
+    "date": "2026-10-16",
+    "state": "open",
+    "bizId": "015ce09f-1414-4af6-b796-42d1eea34bb2"
+  },
+  "2312": {
+    "issue": 242,
+    "url": "https://github.com/sparticleinc/gbase-knowledge/issues/242",
+    "kind": "追記",
+    "date": "2026-10-16",
+    "state": "open",
+    "bizId": "07eb4c45-22f8-4343-acdc-5d7af2056099"
   }
 }
