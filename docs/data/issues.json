@@ -523,5 +523,18 @@
       "url": "https://applink.larksuite.com/client/todo/detail?guid=12fb3d78-3d72-495e-b608-a83ae0d4f739",
       "created": "追記"
     }
+  },
+  "宮本潤|住友三井オートサービス2030年": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-6267277138",
+    "issue_number": 242,
+    "state": "open",
+    "last_seen": "2026-10-19",
+    "bops_ids": [
+      2318
+    ],
+    "biz_id": "9dcabedf-e78e-46c8-a137-20aea7ce421d",
+    "container_id": "2112091089524928521",
+    "note": "10/19 17:13 outline25頁完成後 構成案確認門で停止（宮本様3回目）。outline turn 1669秒",
+    "lark_task": "https://applink.larksuite.com/client/todo/detail?guid=12fb3d78-3d72-495e-b608-a83ae0d4f739"
   }
 }
