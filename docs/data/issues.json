@@ -538,14 +538,26 @@
     "lark_task": "https://applink.larksuite.com/client/todo/detail?guid=12fb3d78-3d72-495e-b608-a83ae0d4f739"
   },
   "_issue|559": {
-    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/559",
+    "issue_number": "559",
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/559#issuecomment-6316022007",
     "state": "open",
-    "last_seen": null
+    "lark_task": {
+      "guid": "e1e4f158-4435-4e8f-94bd-b8b1d1c86ea9",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=e1e4f158-4435-4e8f-94bd-b8b1d1c86ea9",
+      "created": "起票",
+      "dup_closed": "8d8739c7-9a85-49b9-a42a-b7220fe1d5e0"
+    }
   },
   "ALL|slides-gen 401 invalid x-api-key": {
     "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/559",
     "state": "open",
-    "last_seen": "2026-10-20",
-    "task_url": "https://applink.larksuite.com/client/todo/detail?guid=e1e4f158-4435-4e8f-94bd-b8b1d1c86ea9"
+    "last_seen": "2026-10-21",
+    "task_url": "https://applink.larksuite.com/client/todo/detail?guid=e1e4f158-4435-4e8f-94bd-b8b1d1c86ea9",
+    "note": "10/21 起错误变为 400 Requested model is not supported by configured endpoints"
+  },
+  "トゥムル|データセンター市場競合動向調査三": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/559#issuecomment-6316022007",
+    "state": "open",
+    "last_seen": "2026-10-21"
   }
 }
