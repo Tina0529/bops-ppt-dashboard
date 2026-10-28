@@ -2,3 +2,5 @@
 # Python
 __pycache__/
 *.pyc
+.bops_refresh.json
+.bops_chat_cache/

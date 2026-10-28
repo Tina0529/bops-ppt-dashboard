@@ -28,6 +28,9 @@ jobs:
     timeout-minutes: 60   # 通常は数分。backfill_days を大きくした一括回補で足りなくなるため余裕を持たせる
     env:
       TZ: Asia/Tokyo
+      # auth.py が refresh_token を保存し、fetch_bops.py が 5 分で切れる access_token を自動更新する
+      BOPS_AUTH_REFRESH_FILE: ${{ github.workspace }}/.bops_refresh.json
+      BOPS_CHAT_CACHE: ${{ github.workspace }}/.bops_chat_cache
     steps:
       - uses: actions/checkout@v4
         with:
