@@ -1,5 +1,4 @@
 label,total,generated,completion,avg_per_slide
-10-06,12,12,1.0,106.0
 10-07,5,4,0.8,64.1
 10-08,6,6,1.0,221.7
 10-09,4,4,1.0,125.9
@@ -25,3 +24,4 @@ label,total,generated,completion,avg_per_slide
 10-29,3,3,1.0,43.4
 10-30,3,3,1.0,53.6
 10-31,0,0,0,0
+11-01,0,0,0,0
