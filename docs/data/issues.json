@@ -559,5 +559,21 @@
     "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/559#issuecomment-6316022007",
     "state": "open",
     "last_seen": "2026-10-21"
+  },
+  "今村 達也|ERP世界市場とIFSの2035年展望": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/681",
+    "issue_number": "681",
+    "state": "open",
+    "last_seen": "2026-11-03",
+    "chat_ids": [
+      "2116442771416264763",
+      "2117480066134216704"
+    ],
+    "lark_task": {
+      "guid": "5f0ce3ad-625d-4fe2-9db9-ae83d548aa4a",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=5f0ce3ad-625d-4fe2-9db9-ae83d548aa4a",
+      "created": "起票"
+    },
+    "note": "新経路。400 encrypted content 8回→container_busy 3回。PPTX/HTML未納品。根因infra（機構未確認）"
   }
 }
