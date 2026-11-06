@@ -575,5 +575,10 @@
       "created": "起票"
     },
     "note": "新経路。400 encrypted content 8回→container_busy 3回。PPTX/HTML未納品。根因infra（機構未確認）"
+  },
+  "山崎 泰弘|ショッパーの買物情報収集": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-6684898641",
+    "state": "open",
+    "last_seen": "2026-11-06"
   }
 }
