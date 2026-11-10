@@ -580,5 +580,30 @@
     "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242#issuecomment-6684898641",
     "state": "open",
     "last_seen": "2026-11-06"
+  },
+  "_issue|753": {
+    "issue_number": "753",
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/753",
+    "state": "open",
+    "lark_task": {
+      "guid": "7d7e65ad-e34c-4f5a-beff-a173b8265d9d",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=7d7e65ad-e34c-4f5a-beff-a173b8265d9d",
+      "created": "起票"
+    }
+  },
+  "CBP管理者|エンタメ業界の脅威課題と203": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/753",
+    "issue_number": "753",
+    "state": "open",
+    "last_seen": "2026-11-10",
+    "chat_ids": [
+      "2120123729063546944"
+    ],
+    "lark_task": {
+      "guid": "7d7e65ad-e34c-4f5a-beff-a173b8265d9d",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=7d7e65ad-e34c-4f5a-beff-a173b8265d9d",
+      "created": "起票"
+    },
+    "note": "新経路。felo-mygpt ローリング更新で Pod 終了、gRPC 切断。根因 infra"
   }
 }
