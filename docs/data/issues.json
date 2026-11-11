@@ -595,15 +595,16 @@
     "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/753",
     "issue_number": "753",
     "state": "open",
-    "last_seen": "2026-11-10",
+    "last_seen": "2026-11-11",
     "chat_ids": [
-      "2120123729063546944"
+      "2120123729063546944",
+      "2120338289786777659"
     ],
     "lark_task": {
       "guid": "7d7e65ad-e34c-4f5a-beff-a173b8265d9d",
       "url": "https://applink.larksuite.com/client/todo/detail?guid=7d7e65ad-e34c-4f5a-beff-a173b8265d9d",
       "created": "起票"
     },
-    "note": "新経路。felo-mygpt ローリング更新で Pod 終了、gRPC 切断。根因 infra"
+    "note": "新経路。felo-mygpt ローリング更新で Pod 終了、gRPC 切断。根因 infra。11/11 同一指示で再実行し成功（顧客影響は解消）、#753 追記"
   }
 }
