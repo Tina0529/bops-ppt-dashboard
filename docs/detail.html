@@ -55,6 +55,23 @@
   .badge { display:inline-block; padding:1px 8px; border-radius:999px; font-size:11px; font-weight:600;
            background:rgba(127,127,127,.16); color:var(--muted); }
   .footer { margin-top:16px; font-size:11.5px; color:var(--muted-2); line-height:1.7; }
+  .btn:disabled { opacity:.45; cursor:default; border-color:var(--border); }
+  .btn.primary { background:linear-gradient(180deg,var(--primary),#0a4a8a); color:#fff; border-color:transparent; }
+  .dl { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:6px;
+        padding:2px 9px; font-size:12px; cursor:pointer; font-family:inherit; }
+  .dl:hover { border-color:var(--primary-2); }
+  .dl:disabled { opacity:.5; cursor:default; }
+  .nofile { color:var(--muted-2); }
+  .bulkmsg { font-size:12px; color:var(--muted); }
+  dialog.pw { border:1px solid var(--border); border-radius:12px; background:var(--panel); color:var(--text);
+              padding:20px 22px; width:min(380px, calc(100vw - 32px)); box-shadow:var(--shadow); }
+  dialog.pw::backdrop { background:rgba(0,0,0,.5); }
+  dialog.pw h2 { margin:0 0 6px; font-size:15px; }
+  dialog.pw p { margin:0 0 12px; font-size:12px; color:var(--muted); line-height:1.6; }
+  dialog.pw input { width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--border);
+                    background:var(--panel-2); color:var(--text); font-size:13px; font-family:inherit; }
+  dialog.pw .err { color:#f87171; font-size:12px; min-height:18px; margin-top:6px; }
+  dialog.pw .acts { display:flex; justify-content:flex-end; gap:8px; margin-top:8px; }
   @media(max-width:640px){ .topic{max-width:160px;} }
 </style></head>
 <body><div class="wrap">
@@ -75,6 +92,8 @@
     </div>
     <input class="search" id="search" placeholder="トピック / ユーザー / 会社 で絞り込み…">
     <span class="count" id="count"></span>
+    <button class="btn primary" id="bulkBtn" hidden>一括ダウンロード</button>
+    <span class="bulkmsg" id="bulkMsg"></span>
   </div>
 
   <div class="tablewrap">
@@ -86,11 +105,24 @@
 
   <div class="footer" id="foot"></div>
 </div>
+<dialog class="pw" id="pwDlg">
+  <form method="dialog" id="pwForm">
+    <h2>ダウンロード用の口令</h2>
+    <p>PPT は暗号化して置いてあり、このブラウザ内で復号します。口令はページを閉じるまで保持し、どこにも送信・保存しません。</p>
+    <input type="password" id="pwInput" autocomplete="off" placeholder="口令">
+    <div class="err" id="pwErr"></div>
+    <div class="acts">
+      <button class="btn" type="button" id="pwCancel">キャンセル</button>
+      <button class="btn primary" type="submit" id="pwOk">OK</button>
+    </div>
+  </form>
+</dialog>
 <script>
 // 列定義（Excel 明細に準拠）。key は detail.json の各レコードのフィールド。
 const COLS = [
   {k:'id', label:'ID', num:true},
   {k:'topic', label:'トピック', cls:'topic'},
+  {k:'dl', label:'DL', dl:true, nosort:true},
   {k:'username', label:'ユーザー'},
   {k:'company', label:'会社'},
   {k:'strategy', label:'戦略'},
@@ -142,6 +174,7 @@ function renderHead(){
   }).join('');
   document.querySelectorAll('#thead th').forEach(th=>th.onclick=()=>{
     const k=th.dataset.k;
+    if(COLS.find(c=>c.k===k).nosort) return;
     if(k===sortKey) sortDir*=-1; else { sortKey=k; sortDir = COLS.find(c=>c.k===k).num?-1:1; }
     render();
   });
@@ -156,6 +189,11 @@ function render(){
     return `<tr class="${ex} ${bk}">` + COLS.map(c=>{
       let v = x[c.k]; if(v===undefined||v===null) v='';
       const cls = (c.num?'num ':'') + (c.cls||'') + (c.brk&&bk?' brkcell':'');
+      if(c.dl){
+        const f = fileOf(x);
+        if(!f) return `<td class="${cls}"><span class="nofile">—</span></td>`;
+        return `<td class="${cls}"><button class="dl" data-id="${esc(String(x.id))}" title="${esc(f.n)}（${kb(f.s)}）" aria-label="ダウンロード: ${esc(f.n)}">⬇</button></td>`;
+      }
       if(c.link){
         if(!x.issueUrl) return `<td class="${cls}"></td>`;
         const t = `${x.issueState||''} ${x.issueDate||''}`.trim();
@@ -168,7 +206,109 @@ function render(){
   }).join('') || `<tr><td colspan="${COLS.length}" style="padding:20px;color:var(--muted)">該当データなし</td></tr>`;
   const total=(DATA[cur]||[]).length, shown=r.length, exn=(DATA[cur]||[]).filter(x=>x.excluded).length;
   document.getElementById('count').textContent = `${shown}/${total} 件表示${query?'（絞込中）':''} · 未生成 ${exn} 件`;
+  document.querySelectorAll('#tbody button.dl').forEach(b=>b.onclick=()=>downloadOne(b));
+  const nf = r.filter(fileOf).length, bb = document.getElementById('bulkBtn');
+  bb.hidden = !FILES.ready;
+  if(!BUSY){ bb.disabled = nf===0; bb.textContent = `一括ダウンロード（${nf} 件）`; }
 }
+
+// ---- PPT ダウンロード（docs/files/ の暗号化 PPTX をブラウザ内で復号）----
+//   files/index.json: {files:{id:{m:月,n:ファイル名,s:サイズ}}} / files/meta.json: PBKDF2 salt・反復回数・口令確認用 check
+//   暗号化は scripts/encrypt_files.py（CI の PPT_FILE_KEY）。保存は当月＋前月、旧方式（テンプレート）PPT はファイルなし。
+const FILES = {ready:false, idx:{}, meta:null, key:null};
+let BUSY = false;
+const esc = s => String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const kb = n => n>=1048576 ? (n/1048576).toFixed(1)+' MB' : Math.max(1,Math.round(n/1024))+' KB';
+const fileOf = x => FILES.ready ? FILES.idx[String(x.id)] : null;
+const b64 = s => Uint8Array.from(atob(s), ch => ch.charCodeAt(0));
+
+async function deriveKey(pw){
+  const m = FILES.meta;
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({name:'PBKDF2', salt:b64(m.salt), iterations:m.iter, hash:'SHA-256'},
+    base, {name:'AES-GCM', length:256}, false, ['decrypt']);
+  const c = b64(m.check);
+  await crypto.subtle.decrypt({name:'AES-GCM', iv:c.slice(0,12)}, key, c.slice(12));  // 口令違いはここで例外
+  return key;
+}
+function getKey(){
+  if(FILES.key) return Promise.resolve(FILES.key);
+  const dlg = document.getElementById('pwDlg'), inp = document.getElementById('pwInput'), err = document.getElementById('pwErr');
+  return new Promise(resolve=>{
+    err.textContent = ''; inp.value = '';
+    document.getElementById('pwCancel').onclick = ()=>{ dlg.close(); resolve(null); };
+    document.getElementById('pwForm').onsubmit = async ev=>{
+      ev.preventDefault();
+      const pw = inp.value; if(!pw) return;
+      document.getElementById('pwOk').disabled = true; err.textContent = '確認中…';
+      try{ FILES.key = await deriveKey(pw); dlg.close(); resolve(FILES.key); }
+      catch(e){ err.textContent = '口令が違います'; inp.select(); }
+      finally{ document.getElementById('pwOk').disabled = false; }
+    };
+    dlg.oncancel = ()=>resolve(null);
+    dlg.showModal(); inp.focus();
+  });
+}
+async function fetchPlain(id, key){
+  const f = FILES.idx[id];
+  const r = await fetch(`./files/${f.m}/${id}.enc`);
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  const buf = new Uint8Array(await r.arrayBuffer());
+  return crypto.subtle.decrypt({name:'AES-GCM', iv:buf.slice(0,12)}, key, buf.slice(12));
+}
+function saveBlob(blob, name){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 10000);
+}
+const PPTX = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+async function downloadOne(btn){
+  const id = btn.dataset.id, key = await getKey(); if(!key) return;
+  btn.disabled = true; btn.textContent = '…';
+  try{ saveBlob(new Blob([await fetchPlain(id, key)], {type:PPTX}), FILES.idx[id].n); btn.textContent = '⬇'; }
+  catch(e){ btn.textContent = '⚠'; btn.title = '取得に失敗しました: '+e.message; }
+  finally{ btn.disabled = false; }
+}
+function loadJSZip(){
+  if(window.JSZip) return Promise.resolve(window.JSZip);
+  return new Promise((ok, ng)=>{
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    s.integrity = 'sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==';
+    s.crossOrigin = 'anonymous'; s.referrerPolicy = 'no-referrer';
+    s.onload = ()=>ok(window.JSZip); s.onerror = ()=>ng(new Error('JSZip の読み込みに失敗'));
+    document.head.appendChild(s);
+  });
+}
+async function downloadBulk(){
+  const list = rows().filter(fileOf); if(!list.length || BUSY) return;
+  const key = await getKey(); if(!key) return;
+  const bb = document.getElementById('bulkBtn'), msg = document.getElementById('bulkMsg');
+  BUSY = true; bb.disabled = true; msg.textContent = '';
+  try{
+    const JSZip = await loadJSZip(), zip = new JSZip(), used = new Set(), failed = [];
+    let done = 0;
+    for(const x of list){
+      const f = fileOf(x);
+      bb.textContent = `作成中 ${++done}/${list.length}…`;
+      try{
+        const base = `${String(x.createdAt||'').slice(0,10).replace(/-/g,'')}_${x.username||'unknown'}_${f.n}`.replace(/[\\/:*?"<>|]/g,'_');
+        let name = base, i = 2;
+        while(used.has(name)) name = base.replace(/(\.pptx)?$/i, `_${i++}$1`);
+        used.add(name);
+        zip.file(name, await fetchPlain(String(x.id), key));
+      }catch(e){ failed.push(f.n); }
+    }
+    const ok = list.length - failed.length;
+    if(ok){
+      const tab = {daily:'当日', weekly:'当週', monthly:'当月'}[cur] || cur;
+      const blob = await zip.generateAsync({type:'blob'});
+      saveBlob(blob, `BOPS_PPT_${(META.date||'').replace(/-/g,'')}_${tab}${query?'_絞込':''}_${ok}件.zip`);
+    }
+    msg.textContent = failed.length ? `${failed.length} 件は取得できませんでした: ${failed.join('、')}` : '';
+  }catch(e){ msg.textContent = '一括ダウンロードに失敗しました: '+e.message; }
+  finally{ BUSY = false; render(); }
+}
+document.getElementById('bulkBtn').onclick = downloadBulk;
 
 document.querySelectorAll('#seg .seg-btn').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#seg .seg-btn').forEach(x=>x.classList.remove('active'));
@@ -180,7 +320,9 @@ document.getElementById('search').oninput = e=>{ query=e.target.value.trim(); re
   let t='dark'; try{ t=localStorage.getItem('bops_theme')||'dark'; }catch(e){}
   applyTheme(t);
   const FOOT = `※ 灰色行＝統計上の未生成（status 空/created かつ logsCount≤1）。黄色セル＝中断（log 間隔 ≥ 1 時間）あり。`+
-      `列は Excel 明細に準拠。列ヘッダクリックでソート。`;
+      `列は Excel 明細に準拠。列ヘッダクリックでソート。<br>`+
+      `※ DL＝生成された PPTX のダウンロード（初回のみ口令を入力、ブラウザ内で復号）。「一括ダウンロード」は表示中（タブ＋絞り込み）の行を ZIP にまとめる。`+
+      `ファイルは当月と前月分のみ。旧方式（テンプレート選択）の PPT は BOPS にファイルが無いため「—」。`;
   const qMonth = new URLSearchParams(location.search).get('month');
   const fail = ()=>{
     document.getElementById('sub').textContent = 'データの読み込みに失敗しました';
@@ -208,8 +350,12 @@ document.getElementById('search').oninput = e=>{ query=e.target.value.trim(); re
     }
     return list;
   }
-  Promise.all([loadJson('./data/detail.json'), loadJson('./data/issue_links.json'), loadJson('./data/issues.json')]).then(([d,l,i])=>{
+  Promise.all([loadJson('./data/detail.json'), loadJson('./data/issue_links.json'), loadJson('./data/issues.json'),
+               loadJson('./files/index.json'), loadJson('./files/meta.json')]).then(([d,l,i,fi,fm])=>{
     LINKS=l||{}; ISSUES=i||{}; buildIdx();
+    if(fi && fi.files && fm && fm.salt && window.crypto && crypto.subtle){
+      FILES.idx = fi.files; FILES.meta = fm; FILES.ready = true;
+    }
     META = d;
     if(qMonth && qMonth !== (d.date||'').slice(0,7)){
       // 過去月アーカイブ表示: 月次明細のみ（当日/当週タブは非表示）

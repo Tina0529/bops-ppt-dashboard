@@ -14,6 +14,10 @@ on:
         description: '推移トレンド初期化: 過去N日を一括生成（例 70）。通常は空欄。'
         required: false
         type: string
+      files_month:
+        description: '明細ダウンロード用 PPT の補完: その月全体を取り直して暗号化（例 2026-10、当月か前月のみ有効）。通常は空欄。'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -41,7 +45,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install deps
-        run: pip install --quiet openpyxl playwright && python3 -m playwright install --with-deps chromium
+        run: pip install --quiet openpyxl playwright cryptography && python3 -m playwright install --with-deps chromium
 
       - name: Resolve target date
         id: date
@@ -81,6 +85,9 @@ jobs:
           LARK_WEBHOOK: ${{ secrets.LARK_WEBHOOK_GBASE_PPT_DAILY_MONITOR }}
           TARGET_DATE: ${{ steps.date.outputs.target }}
           DASHBOARD_URL: https://tina0529.github.io/bops-ppt-dashboard/
+          # 明細ページのダウンロード用 PPTX の暗号化口令（未設定ならダウンロード列は出ない）
+          PPT_FILE_KEY: ${{ secrets.PPT_FILE_KEY }}
+          FILES_BACKFILL_MONTH: ${{ inputs.files_month }}
         run: |
           if [ -z "$BOPS_TOKEN" ]; then echo "::error::BOPS token 取得失敗（secrets 要確認）"; exit 1; fi
           set -o pipefail   # tee がパイプで exit code を握り潰し、失敗が success 扱いになるのを防ぐ

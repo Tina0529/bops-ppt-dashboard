@@ -189,6 +189,20 @@ def _cached(key, fn):
     return data
 
 
+def _stage_file(created_jst, rid, name, blob):
+    """明細ページのダウンロード用。PPT_FILE_STAGE があれば平文 PPTX を一時置き場に置く。
+    encrypt_files.py がこれを暗号化して docs/files/ に出す（平文は公開リポジトリに入れない）。"""
+    stage = os.environ.get('PPT_FILE_STAGE')
+    if not stage:
+        return
+    d = os.path.join(stage, created_jst[:7])
+    os.makedirs(d, exist_ok=True)
+    with open(os.path.join(d, f'{rid}.pptx'), 'wb') as fh:
+        fh.write(blob)
+    with open(os.path.join(d, f'{rid}.json'), 'w', encoding='utf-8') as fh:
+        json.dump({'name': name}, fh, ensure_ascii=False)
+
+
 def _count_slides(pptx_bytes):
     with zipfile.ZipFile(io.BytesIO(pptx_bytes)) as z:
         return sum(1 for n in z.namelist() if re.fullmatch(r'ppt/slides/slide\d+\.xml', n))
@@ -256,10 +270,12 @@ def fetch_chat_ppts(headers, start_ts, end_ts):
             (v for v in msgs.values() if isinstance(v, list) and v and isinstance(v[0], dict)), []) if isinstance(msgs, dict) else msgs
         for f in ppts:
             key = f"{c['id']}|{f['filePath']}|{f['fileName']}"
+            rid = int(hashlib.sha1(key.encode()).hexdigest()[:12], 16)
             try:
                 blob = _cached('ppt:' + key + f"|{f.get('fileSize')}", lambda: _request(
                     CHAT_DOWNLOAD_API, headers, {'chatId': c['id'], 'fileName': f['fileName'], 'filePath': f['filePath']}, raw=True))
                 slides = _count_slides(blob)
+                _stage_file(_to_jst(f['updatedAt']), rid, f['fileName'], blob)
             except Exception as e:
                 print(f'  [warn] chat={c["id"]} {f["fileName"]} のページ数取得に失敗: {e}', file=sys.stderr)
                 slides = 0
@@ -268,7 +284,7 @@ def fetch_chat_ppts(headers, start_ts, end_ts):
             fmt = lambda x: time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(x))
             topic = f"{(c.get('title') or '').strip()}｜{f['fileName']}"
             rows.append([
-                int(hashlib.sha1(key.encode()).hexdigest()[:12], 16), topic, c.get('ownerName', ''),
+                rid, topic, c.get('ownerName', ''),
                 c.get('companyName', ''), '-', CHAT_STRATEGY, 'success', slides, slides,
                 _to_jst(f['updatedAt']), _to_jst(fmt(lo)), _to_jst(fmt(hi)), dur, steps, dur, 0, 0,
             ])

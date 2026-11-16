@@ -51,6 +51,7 @@ Settings → Secrets and variables → Actions:
 | `BOPS_USERNAME` | BOPS ログイン ID（自動ログイン） |
 | `BOPS_PASSWORD` | BOPS ログインパスワード |
 | `LARK_WEBHOOK_GBASE_PPT_DAILY_MONITOR` | Lark 通知先 webhook |
+| `PPT_FILE_KEY` | 明細ページの PPT ダウンロード用の暗号化口令（16 文字以上。未設定ならダウンロード列は出ない） |
 
 ### 4. Pages を有効化
 
@@ -133,10 +134,25 @@ Actions → "BOPS PPT Dashboard Daily" → Run workflow → backfill_days = 230
 
 ## 明細ページ（detail.html）の列（Excel 準拠）
 
-ID / トピック / ユーザー / 会社 / 戦略 / 状態 / スライド数(一覧) / 実際 / 統計用 /
+ID / トピック / DL / ユーザー / 会社 / 戦略 / 状態 / スライド数(一覧) / 実際 / 統計用 /
 作成日時 / 開始 / 終了 / 所要(秒) / mm:ss / ログ件数 / 平均秒/頁 / 未做成原因 /
 中断回数 / 最大中断(秒)
 
 - 灰色行 = 統計上の未生成（status 空/created かつ logsCount≤1）
 - 黄色セル = 中断（log 間隔 ≥ 1 時間）あり
 - 列ヘッダクリックでソート、検索ボックスで絞り込み
+
+### PPT ダウンロード（DL 列・一括ダウンロード）
+
+Pages は公開ホスティングなので、顧客の PPT は**暗号化して**置き、ブラウザ内で復号する。
+
+- CI の `fetch_bops.py` が会話内生成 PPTX を一時置き場（`$WORK/files`、終了時に削除）に置き、
+  `scripts/encrypt_files.py` が `PPT_FILE_KEY` で暗号化して `docs/files/<YYYY-MM>/<明細 id>.enc` に出す。
+  方式は PBKDF2-SHA256（310,000 回）→ AES-256-GCM。平文はリポジトリに入らない。
+- ページで DL / 一括ダウンロードを押すと口令を 1 回聞かれる（ページを閉じるまで保持、送信・保存しない）。
+  一括ダウンロードは表示中（タブ＋絞り込み）の行を JSZip で ZIP にまとめる。
+- 保存期間は当月＋前月。それより古い月は毎晩削除。旧方式（テンプレート選択、〜2026-10-19）の PPT は
+  BOPS にファイルが無いので「—」。
+- 前月分を後から揃えるとき: Actions → Run workflow → `files_month` に `2026-10` などを入れて実行。
+- 口令を変えたら、次の実行で既存ファイルを全部消して作り直す（前月分は `files_month` で補完）。
+  口令は社内のメンバーにだけ別経路（Lark の社内 DM 等）で伝える。

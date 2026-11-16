@@ -13,6 +13,9 @@ ROOT="$(dirname "$HERE")"
 DATA_DIR="$ROOT/docs/data"
 mkdir -p "$DATA_DIR"
 WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
+# 明細ページのダウンロード用: fetch_bops.py が会話内 PPTX をここへ平文で置き、encrypt_files.py が
+# 暗号化して docs/files/ に出す。平文は $WORK ごと終了時に消える（リポジトリには入らない）。
+export PPT_FILE_STAGE="$WORK/files"
 
 TARGET_DATE="${TARGET_DATE:-$(TZ=Asia/Tokyo python3 -c "from datetime import datetime;print(datetime.now().strftime('%Y-%m-%d'))")}"
 
@@ -87,6 +90,23 @@ if [ "$DOM" -le 2 ]; then
     && python3 "$HERE/update_org_trend.py" "$WORK/pmonth.tsv" "$PMO_LABEL" "$TREND_OM" \
     || echo "[run_site] 前月回補 スキップ"
 fi
+
+# 明細ダウンロード用ファイルの補完（任意）: FILES_BACKFILL_MONTH=YYYY-MM でその月全体を取り直す
+if [ -n "${FILES_BACKFILL_MONTH:-}" ]; then
+  read -r FB_START FB_END < <(python3 - "$FILES_BACKFILL_MONTH" "$TARGET_DATE" <<'PY'
+import sys, calendar
+y, m = map(int, sys.argv[1].split('-'))
+end = f'{y}-{m:02d}-{calendar.monthrange(y, m)[1]:02d}'
+print(f'{y}-{m:02d}-01', min(end, sys.argv[2]))
+PY
+)
+  python3 "$F" --start "$FB_START" --end "$FB_END" --out "$WORK/files_backfill.tsv" \
+    || echo "[run_site] ファイル補完（${FILES_BACKFILL_MONTH}）取得失敗"
+fi
+
+# 明細ダウンロード用の PPTX を暗号化して docs/files/ へ（失敗してもサイト生成は続ける）
+python3 "$HERE/encrypt_files.py" --stage "$PPT_FILE_STAGE" --out "$ROOT/docs/files" --date "$TARGET_DATE" \
+  || echo "[run_site] WARN: PPT 暗号化に失敗（ダウンロード列は前回のまま）"
 
 # サイト JSON 生成（前期/トレンドは存在すれば渡す）
 WP=(); [ -s "$WORK/wprev.tsv" ] && WP=(--weekly-prev "$WORK/wprev.tsv")
