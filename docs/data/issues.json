@@ -155,7 +155,7 @@
     "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/242",
     "issue_number": 242,
     "state": "open",
-    "last_seen": "2026-09-08",
+    "last_seen": "2026-11-20",
     "biz_id": "d7841289-3235-4854-95e8-447f65caa81d",
     "note": "outline15頁完成後 AskUserQuestion 確認門で停止（12時間未回答）。同主題を09-04(id2176)に成功生成済み＝改版重做ケース"
   },
@@ -336,7 +336,7 @@
     "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/245",
     "issue_number": 245,
     "state": "open",
-    "last_seen": "2026-10-03",
+    "last_seen": "2026-11-20",
     "biz_id": "eb2ac848-8ce8-43bf-95de-759ef66637c5",
     "note": "合并 slide_3/4 删除 slide_4 后孤儿 content slide_4 + plans slide_11 重复残留（ppt_plans: Plan file count mismatch 11 vs 10）。未丢页",
     "lark_task": {
@@ -564,7 +564,7 @@
     "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/681",
     "issue_number": "681",
     "state": "open",
-    "last_seen": "2026-11-03",
+    "last_seen": "2026-11-20",
     "chat_ids": [
       "2116442771416264763",
       "2117480066134216704"
@@ -606,5 +606,16 @@
       "created": "起票"
     },
     "note": "新経路。felo-mygpt ローリング更新で Pod 終了、gRPC 切断。根因 infra。11/11 同一指示で再実行し成功（顧客影響は解消）、#753 追記"
+  },
+  "_issue|831": {
+    "issue_number": "831",
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/831",
+    "state": "open",
+    "lark_task": {
+      "guid": "d0e0e783-b7fb-4e85-9f21-4327d554b002",
+      "url": "https://applink.larksuite.com/client/todo/detail?guid=d0e0e783-b7fb-4e85-9f21-4327d554b002",
+      "created": "追記"
+    },
+    "last_seen": "2026-11-20"
   }
 }
