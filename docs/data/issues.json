@@ -617,5 +617,11 @@
       "created": "追記"
     },
     "last_seen": "2026-11-20"
+  },
+  "封 杰敏|上野散歩AIGuide紹介": {
+    "issue_url": null,
+    "state": "observing",
+    "last_seen": "2026-11-26",
+    "note": "AI Slides 入口で「簡単な紹介」→テキスト回答で PPT にならず、再依頼で納品。単発のため未起票"
   }
 }
