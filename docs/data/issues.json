@@ -564,10 +564,12 @@
     "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/681",
     "issue_number": "681",
     "state": "open",
-    "last_seen": "2026-11-20",
+    "last_seen": "2026-11-27",
     "chat_ids": [
       "2116442771416264763",
-      "2117480066134216704"
+      "2117480066134216704",
+      "2126151098625863765",
+      "2126140357730545689"
     ],
     "lark_task": {
       "guid": "5f0ce3ad-625d-4fe2-9db9-ae83d548aa4a",
@@ -623,5 +625,16 @@
     "state": "observing",
     "last_seen": "2026-11-26",
     "note": "AI Slides 入口で「簡単な紹介」→テキスト回答で PPT にならず、再依頼で納品。単発のため未起票"
+  },
+  "張 茂友|AIによる通関問い合わせ対応効率化": {
+    "issue_url": "https://github.com/sparticleinc/gbase-knowledge/issues/681",
+    "issue_number": "681",
+    "state": "open",
+    "last_seen": "2026-11-27",
+    "first_seen": "2026-11-27",
+    "chat_ids": [
+      "2126151098625863765"
+    ],
+    "note": "SSE 断开→busy_interrupted 致未交付，归入 #681 追记"
   }
 }
